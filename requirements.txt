@@ -1,0 +1,6 @@
+streamlit
+ollama
+deep-translator
+gTTS
+fsrs
+dotenv
