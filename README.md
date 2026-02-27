@@ -33,6 +33,8 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
    ```bash
    streamlit run app.py
 
+---
+
 ## To-Do:
 - [x] Make database related files
 - [x] Add FSRS math logic into the app
@@ -42,3 +44,11 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 - [ ] Add TTS for language flashcards
 - [ ] Make the UI with Streamlit
 - [ ] Add custom CSS for styling
+
+---
+
+## Author
+**mir-src**
+- 📧 Contact: [264200162+mir-src@users.noreply.github.com](mailto:264200162+mir-src@users.noreply.github.com)
+- Python & C++ Developer 🐍
+- 2D Illustrator 🎨
