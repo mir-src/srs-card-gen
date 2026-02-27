@@ -5,7 +5,7 @@ venv/
 .venv/
 env/
 
-# --- Databases (Crucial for your SQL work) ---
+# --- Databases ---
 *.sqlite3
 *.db
 *.sql
