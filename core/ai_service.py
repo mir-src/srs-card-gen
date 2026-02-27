@@ -1,3 +1,4 @@
+from groq import Groq
 import ollama
 from dotenv import load_dotenv
 import os
@@ -7,8 +8,9 @@ from deep_translator import GoogleTranslator
 load_dotenv()
 
 AI_MODE = os.getenv("AI_MODE", "LOCAL")
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-def generate_knowledge_back(front_prompt: str, model: str = 'llama3.2') -> str:
+def generate_knowledge_back(front_prompt: str, local_model: str = 'llama3.2') -> str:
     system_prompt_local = """
     You are a professional flashcard creator.
     The user will give you a concept or question.
@@ -16,15 +18,31 @@ def generate_knowledge_back(front_prompt: str, model: str = 'llama3.2') -> str:
     Rules: Keep it under 3 sentences. Be highly accurate. DO NOT include conversational filler. Just the answer. Answer only in English regardless of the language the user asks the question in.
     """
 
+    system_prompt_groq = """
+    You are a professional flashcard creator.
+    The user will give you a concept or question.
+    Write the back of the flashcard.
+    Rules: Keep it under 3 sentences. Be highly accurate. DO NOT include conversational filler. Just the answer.
+    """
+
     if AI_MODE == "LOCAL":
-        response = ollama.chat(model=model, messages=[
+        response = ollama.chat(model=local_model, messages=[
             {'role': 'system', 'content': system_prompt_local},
             {'role': 'user', 'content': front_prompt}
         ])
         return response['message']['content'].strip()
     else:
-        # Cloud/Groq version 
-        return "Cloud API not yet implemented."
+        groq_response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content":system_prompt_groq},
+                {"role": "user", "content": front_prompt}
+            ],
+            model="llama-3.3-70b-versatile",
+        )
+        
+        content = groq_response.choices[0].message.content
+
+        return content.strip() if content else "No response generated."
 
 def generate_language_card(target_word: str, language: str, model: str = 'llama3.2') -> dict:
     system_prompt = f"""

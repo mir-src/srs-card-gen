@@ -40,10 +40,12 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 - [x] Add FSRS math logic into the app
 - [x] Finish making the blueprints for objects
 - [x] Included Ollama Local AI
-- [ ] Add Groq AI functionality
+- [x] Add Groq AI functionality
 - [ ] Add TTS for language flashcards
 - [ ] Make the UI with Streamlit
 - [ ] Add custom CSS for styling
+
+**Current Update**: Implemented the groq AI functionality, updated the logic for AI generated flashcards (general knowledge type of card for now), added a safe way to delete media together with cards, decks and users, we no longer have orphaned media when we delete a card for example, media gets deleted together with the database table. Fixed an issue where if we change the name of a card the audio file of that specific card doesn't know that we changed the name of the card, now we delete the audio file if that's the case.
 
 ---
 

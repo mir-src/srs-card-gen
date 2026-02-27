@@ -4,3 +4,4 @@ deep-translator
 gTTS
 fsrs
 dotenv
+groq
