@@ -5,9 +5,9 @@ import os
 import json
 from deep_translator import GoogleTranslator
 
-load_dotenv()
+load_dotenv(override=True)
 
-AI_MODE = os.getenv("AI_MODE", "LOCAL")
+AI_MODE = os.getenv("AI_MODE")
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 def generate_knowledge_back(front_prompt: str, local_model: str = 'llama3.2') -> str:
@@ -44,14 +44,14 @@ def generate_knowledge_back(front_prompt: str, local_model: str = 'llama3.2') ->
 
         return content.strip() if content else "No response generated."
 
-def generate_language_card(target_word: str, language: str, model: str = 'llama3.2') -> dict:
-    system_prompt = f"""
+def generate_language_card(target_word: str, language: str) -> dict:
+    system_prompt_local = f"""
     You are a professional {language} teacher.
     Provide a simple, natural example sentence in {language} for the word '{target_word}'.
     
     Return ONLY a JSON object with these keys:
     {{
-       "definition": None,
+       "definition": null,
        "example_sentence_foreign": "The sentence in {language} containing '{target_word}'",
        "example_sentence_english": "The translation of the sentence",
        "word_hiragana": "If Japanese, provide hiragana for '{target_word}'. Otherwise null.",
@@ -59,10 +59,24 @@ def generate_language_card(target_word: str, language: str, model: str = 'llama3
     }}
     """
 
+    system_prompt_groq = f"""
+    You are a professional {language} translator and teacher.
+    Provide the exact definition and a simple, natural example sentence in {language} for the word '{target_word}'.
+    
+    Return ONLY a JSON object with these exact keys:
+    {{
+       "definition": "The accurate English translation of '{target_word}' (max 3 words)",
+       "example_sentence_foreign": "The sentence in {language} containing '{target_word}'",
+       "example_sentence_english": "The English translation of the example sentence",
+       "word_hiragana": "If Japanese, provide hiragana for '{target_word}'. Otherwise null.",
+       "sentence_hiragana": "If Japanese, provide hiragana for the example sentence. Otherwise null."
+    }}
+    """
+
     if AI_MODE == "LOCAL":
         try:
-            response = ollama.chat(model=model, format='json', messages=[
-                {'role': 'system', 'content': system_prompt},
+            response = ollama.chat(model='llama3.2', format='json', messages=[
+                {'role': 'system', 'content': system_prompt_local},
                 {'role': 'user', 'content': target_word}
             ])
 
@@ -75,6 +89,14 @@ def generate_language_card(target_word: str, language: str, model: str = 'llama3
             return card_data
         except json.JSONDecodeError:
             return {"error": "AI failed to generate valid JSON"}
-    return {"error": "Cloud mode is not yet implemented"}   
-    
-
+    else:
+        groq_response = client.chat.completions.create(
+            messages=[
+                {'role': 'system', 'content': system_prompt_groq},
+                {'role': 'user', 'content': target_word}
+            ],
+            model="llama-3.3-70b-versatile",
+            response_format={"type": "json_object"}
+        )
+        converted_message = groq_response.choices[0].message.content
+        return json.loads(converted_message) if converted_message else {"error": "The Groq answer is empty!"}

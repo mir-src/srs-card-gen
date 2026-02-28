@@ -10,6 +10,7 @@ env/
 *.db
 *.sql
 *.dump
+*.mp3
 
 # --- AI & Environment Secrets (Groq API keys) ---
 .env

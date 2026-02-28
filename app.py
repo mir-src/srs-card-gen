@@ -1,14 +1,36 @@
 import streamlit as st
-from db.cards import create_card
+import os
+from dotenv import load_dotenv
+from db.cards import create_card, delete_card, update_card, get_card, get_cards
+from db.users import create_user, delete_user, update_user, get_user, get_users
+from db.decks import create_deck, delete_deck, update_deck, get_deck, get_decks
+from db.media import create_media
 from db.core import DatabaseWriteError, initialize_database
 from core.ai_service import generate_knowledge_back, generate_language_card
+from core.audio_service import generate_audio
 
-@st.cache_resource
-def startup_logic():
-    initialize_database()
-    return True
+load_dotenv(override=True)
+AI_MODE = os.getenv("AI_MODE")
 
-startup_logic()
+initialize_database()
+
+def get_active_deck_id() -> int:
+    users = get_users()
+    if not users:
+        user_id = create_user("Default User")
+        if user_id is None:
+            raise RuntimeError("Database failed to create a default user.")
+    else:
+        user_id = users[0].id
+    
+    decks = get_decks(user_id)
+    if not decks:
+        deck_id = create_deck(user_id=user_id, name="Language Learning Deck")
+        if deck_id is None:
+            raise RuntimeError("Database failed to create a default deck.")
+    else:
+        deck_id = decks[0].id
+    return deck_id
 
 st.title("AI Flashcard Generator")
 
@@ -32,26 +54,45 @@ elif mode == "Language Learning":
     st.subheader("Generate a Language Card")
 
     target_word = st.text_input("Enter Foreign Word...")
-    language = st.selectbox("Language", ["Spanish", "French", "German"])
-    st.write("Using Local Mode. Options Limited!")
+    
+    if AI_MODE == "LOCAL":
+        language = st.selectbox("Language", ["Spanish", "French", "German"])
+        st.warning("⚙️ Using Local Mode (Llama 3.2 3B). Languages Limited.")
+        spinner_text = "Local model is thinking..."
+    else:
+        language = st.selectbox("Language", ["Spanish", "French", "German", "Japanese", "Romanian", "Italian"])
+        st.success("☁️ Using Cloud Mode (Groq 70B). Full access granted!")
+        spinner_text = "Groq 70B is translating..."
 
     if st.button("Generate Language Flashcard!"):
         if target_word and language:
-            with st.spinner(f"Translating and explaining using Llama 3.2..."):
+            with st.spinner(spinner_text):
                 card_data = generate_language_card(target_word=target_word, language=language)
+                
 
-                if "error" in card_data:
-                    st.error(card_data["error"])
-                else:
-                    st.success("Generated!")
+                st.markdown("### Audio Pronunciation")
+                with st.spinner("Generating audio..."):
+                    audio_path_word = generate_audio(target_word, language)
+                    audio_path_sentence = generate_audio(card_data['example_sentence_foreign'], language)
+                    if audio_path_sentence and audio_path_word:
+                        st.audio(audio_path_word, format="audio/mp3")
+                        st.audio(audio_path_sentence, format="audio/mp3")
 
-                    st.markdown(f"### Front")
-                    st.info(f"**Word:** {target_word}")
-                    st.info(f"**Example:** {card_data['example_sentence_foreign']}")
+                        front_text = target_word
+                        back_text = f"Definition: {card_data['definition']}\n\nExample: {card_data['example_sentence_foreign']}\nTranslation: {card_data['example_sentence_english']}"
+                        try:
+                            active_deck_id = get_active_deck_id()
 
-                    st.markdown(f"### Back")
-                    st.info(f"Target Word Definition: {card_data['definition']}")
-                    st.info(f"Example sentence translation: {card_data['example_sentence_english']}")
+                            card_id = create_card(deck_id=active_deck_id, front=front_text, back=back_text)
+
+                            if card_id:
+                                create_media(card_id=card_id, media_type='audio', path=audio_path_word)
+                                create_media(card_id=card_id, media_type='audio', path=audio_path_sentence)
+                                st.success(f"💾 Flashcard and audio saved successfully! (Card #{card_id} in Deck #{active_deck_id})")
+                            else:
+                                st.warning("Flashcard wasn't saved successfully.")
+                        except Exception as e:
+                            st.error(f"Failed to save to database: {e}")
         else:
             st.warning("Please enter a prompt first.")
 

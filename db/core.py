@@ -43,8 +43,8 @@ def execute_insert(sql: str, params: tuple = ()) -> int | None:
         with get_connection() as conn:
             cursor = conn.execute(sql, params)
             return cursor.lastrowid if cursor else None
-    except sqlite3.IntegrityError:
-        raise DatabaseWriteError("Failed to insert into database.")
+    except sqlite3.IntegrityError as e:
+        raise DatabaseWriteError(f"Integrity Error: {e}")
 
 # fecth_one Helper
 def fetch_one(sql: str, params: tuple, model_class):
