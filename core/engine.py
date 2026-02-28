@@ -1,6 +1,6 @@
 import fsrs
-from db.models import Card
-from datetime import datetime, timezone
+from db.models import Card, Deck
+from datetime import datetime, timezone, timedelta
 
 STATE_TO_FSRS = {
     'new': fsrs.State.Learning,
@@ -54,3 +54,99 @@ def process_review(my_card: Card, rating_value: int) -> Card:
 
     updated_card = map_from_fsrs(my_card, new_f_card)
     return updated_card
+
+# To finish later
+"""def convert_steps(steps: str) -> list:
+    steps_to_list = steps.replace('m', '').split()
+    make_int_list = [int(n) for n in steps_to_list]
+    return make_int_list 
+
+def update_due_date(step_number: int) -> datetime:
+    now = datetime.now(timezone.utc)
+    converted_step_number = timedelta(minutes=step_number)
+    new_due_date = now + converted_step_number
+    return new_due_date
+
+def router(my_card: Card, deck: Deck, user_rating: int):
+    learning_steps = convert_steps(deck.learning_steps)
+    relearning_steps = convert_steps(deck.relearning_steps)
+    learning_index = len(learning_steps)
+    relearning_index = len(relearning_steps)
+
+    if my_card.state == 'new':
+        if user_rating == 1:
+            my_card.step = 0
+            my_card.state = 'learning'
+            new_due_date = update_due_date(learning_steps[my_card.step])
+            my_card.due_date = new_due_date
+
+
+        elif user_rating == 2:
+            my_card.step += 0
+            my_card.state = 'learning'
+            new_due_date = update_due_date(learning_steps[my_card.step])
+            my_card.due_date = new_due_date
+
+        elif user_rating == 3:
+            my_card.step += 1
+            if my_card.step != learning_index:
+                new_due_date = update_due_date(learning_steps[my_card.step])
+                my_card.due_date = new_due_date
+            elif my_card.step == learning_index:
+                my_card.state = 'review'
+                return process_review(my_card=my_card, rating_value=user_rating)
+        else:
+            my_card.state = 'review'
+            return process_review(my_card=my_card, rating_value=user_rating)
+
+    elif my_card.state == 'learning':
+        if user_rating == 1:
+            my_card.step = 0
+            new_due_date = update_due_date(learning_steps[my_card.step])
+            my_card.due_date = new_due_date
+        elif user_rating == 2:
+            my_card.step += 0
+            new_due_date = update_due_date(learning_steps[my_card.step])
+            my_card.due_date = new_due_date
+        elif user_rating == 3:
+            my_card.step += 1
+            if my_card.step != learning_index:
+                new_due_date = update_due_date(learning_steps[my_card.step])
+                my_card.due_date = new_due_date
+            if my_card.step >= learning_index:
+                my_card.state = 'review'
+                return process_review(my_card=my_card, rating_value=user_rating)
+        else:
+            my_card.state = 'review'
+            return process_review(my_card=my_card, rating_value=user_rating)
+
+    elif my_card.state == 'relearning':
+        if user_rating == 1:
+            my_card.step = 0
+            new_due_date = update_due_date(relearning_steps[my_card.step])
+            my_card.due_date = new_due_date
+        elif user_rating == 2:
+            my_card.step += 0
+            new_due_date = update_due_date(relearning_steps[my_card.step])
+            my_card.due_date = new_due_date
+        elif user_rating == 3:
+            my_card.step += 1
+            my_card.state = 'review'
+            return process_review(my_card=my_card, rating_value=user_rating)
+        else:
+            my_card.state = 'review'
+            return process_review(my_card=my_card, rating_value=user_rating)
+
+    elif my_card.state == 'review':
+        if user_rating == 1:
+            my_card.step = 0
+            new_due_date = update_due_date(relearning_steps[my_card.step])
+            my_card.due_date = new_due_date
+            my_card.state = 'relearning'
+        else:
+            if my_card.step == relearning_index:
+                return process_review(my_card=my_card, rating_value=user_rating) 
+            else:
+                my_card.state = 'relearning'
+    return my_card
+"""

@@ -45,7 +45,7 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 - [ ] Make the UI with Streamlit
 - [ ] Add custom CSS for styling
 
-**Current Update**: Logic and Creation Engine finished! Implemented TTS (using gTTS), implemented ability to generate audio for a language flashcard, implemented Groq AI functionality in language flashcards. The only thing left to implement is the streamlit UI.
+**Current Update**: Working on the state engine.
 
 ---
 
