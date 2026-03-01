@@ -55,8 +55,7 @@ def process_review(my_card: Card, rating_value: int) -> Card:
     updated_card = map_from_fsrs(my_card, new_f_card)
     return updated_card
 
-# To finish later
-"""def convert_steps(steps: str) -> list:
+def convert_steps(steps: str) -> list:
     steps_to_list = steps.replace('m', '').split()
     make_int_list = [int(n) for n in steps_to_list]
     return make_int_list 
@@ -131,22 +130,23 @@ def router(my_card: Card, deck: Deck, user_rating: int):
             my_card.due_date = new_due_date
         elif user_rating == 3:
             my_card.step += 1
-            my_card.state = 'review'
-            return process_review(my_card=my_card, rating_value=user_rating)
+            if my_card.step != relearning_index:
+                new_due_date = update_due_date(relearning_steps[my_card.step])
+                my_card.due_date = new_due_date
+            if my_card.step >= relearning_index:
+                my_card.state = 'review'
+                return process_review(my_card=my_card, rating_value=user_rating)
         else:
             my_card.state = 'review'
             return process_review(my_card=my_card, rating_value=user_rating)
 
     elif my_card.state == 'review':
         if user_rating == 1:
+            my_card = process_review(my_card=my_card, rating_value=user_rating)
             my_card.step = 0
             new_due_date = update_due_date(relearning_steps[my_card.step])
             my_card.due_date = new_due_date
             my_card.state = 'relearning'
         else:
-            if my_card.step == relearning_index:
-                return process_review(my_card=my_card, rating_value=user_rating) 
-            else:
-                my_card.state = 'relearning'
+            return process_review(my_card=my_card, rating_value=user_rating)
     return my_card
-"""
