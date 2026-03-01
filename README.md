@@ -45,7 +45,7 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 - [ ] Make the UI with Streamlit
 - [ ] Add custom CSS for styling
 
-**Current Update**: Implemented functions for updating due_date, card state and card step during a review session.
+**Update**: Implemented a function for getting cards from a deck in a custom order based on priority.
 
 ---
 

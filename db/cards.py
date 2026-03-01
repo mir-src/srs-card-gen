@@ -1,6 +1,6 @@
 from db.core import execute_write, execute_insert, fetch_one, fetch_all
 from db.models import Card
-from datetime import datetime
+from datetime import datetime, timezone
 
 def create_card(deck_id: int, front: str, back: str, card_type: str = 'basic', state: str = 'new'):
     now = datetime.now()
@@ -62,6 +62,19 @@ def get_card(card_id: int) -> Card | None:
 def get_cards(deck_id: int) -> list | None:
     return fetch_all("SELECT * FROM cards WHERE deck_id = ?", (deck_id,), Card)
 
-
-
+def get_due_cards(deck_id: int):
+    now = datetime.now(timezone.utc)
+    sql = """
+    SELECT * FROM cards
+    WHERE deck_id = ? AND (due_date <= ? OR state = 'new')
+    ORDER BY
+        CASE state
+            WHEN 'learning' THEN 0
+            WHEN 'relearning' THEN 1
+            WHEN 'review' THEN 2
+            ELSE 3
+        END ASC,
+        due_date ASC
+    """
+    return fetch_all(sql, (deck_id, now,), Card)
 
