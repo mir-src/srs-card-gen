@@ -33,8 +33,9 @@ with st.form("Create Deck", clear_on_submit=True):
 st.markdown("---")
 st.subheader("Create a Flashcard")
 
+chosen_deck = None
+
 if chosen_user:
-    chosen_deck = None
     user_decks = get_decks(chosen_user.id)
     if user_decks:
         chosen_deck = st.selectbox(

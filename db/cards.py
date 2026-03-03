@@ -1,6 +1,6 @@
 from db.core import execute_write, execute_insert, fetch_one, fetch_all
 from db.models import Card
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 def create_card(deck_id: int, front: str, back: str, card_type: str = 'basic', state: str = 'new'):
     now = datetime.now()
@@ -41,7 +41,8 @@ def update_card(card: Card) -> bool:
             difficulty = ?, 
             is_leech = ?, 
             is_suspended = ?, 
-            state = ?
+            state = ?,
+            step = ?
         WHERE id = ?
     """
     ,(
@@ -54,6 +55,7 @@ def update_card(card: Card) -> bool:
         card.is_leech, 
         card.is_suspended, 
         card.state, 
+        card.step,
         card.id))
 
 def get_card(card_id: int) -> Card | None:
@@ -63,18 +65,19 @@ def get_cards(deck_id: int) -> list | None:
     return fetch_all("SELECT * FROM cards WHERE deck_id = ?", (deck_id,), Card)
 
 def get_due_cards(deck_id: int):
-    now = datetime.now(timezone.utc)
+    learn_ahead_time = datetime.now(timezone.utc) + timedelta(minutes=20)
     sql = """
     SELECT * FROM cards
     WHERE deck_id = ? AND (due_date <= ? OR state = 'new')
-    ORDER BY
+    ORDER BY 
         CASE state
-            WHEN 'learning' THEN 0
-            WHEN 'relearning' THEN 1
-            WHEN 'review' THEN 2
-            ELSE 3
+            WHEN 'review' THEN 0     -- Overdue reviews first
+            WHEN 'relearning' THEN 1 -- Forgotten cards next
+            WHEN 'new' THEN 2        -- Brand new cards third
+            WHEN 'learning' THEN 3   -- Current learning cards last
+            ELSE 4
         END ASC,
-        due_date ASC
+        due_date ASC                 -- Then sort by time within those groups
     """
-    return fetch_all(sql, (deck_id, now,), Card)
+    return fetch_all(sql, (deck_id, learn_ahead_time,), Card)
 

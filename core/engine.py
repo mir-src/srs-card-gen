@@ -178,7 +178,7 @@ def get_intervals(current_card: Card, deck: Deck) -> list:
         elif delta.days < 30:
             intervals.append(f"{delta.days}d")
         elif delta.days < 365:
-            intervals.append(f"{delta.days // 30}m")
+            intervals.append(f"{delta.days // 30}mo")
         else:
             intervals.append(f"{delta.days // 365}y")
 

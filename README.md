@@ -45,7 +45,8 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 - [ ] Make the UI with Streamlit
 - [ ] Add custom CSS for styling
 
-**Update**: Made changes to the UI, implemented get intervals function.
+**Update**: Implemented functional anki review logic.
+
 
 ---
 

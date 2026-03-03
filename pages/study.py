@@ -2,7 +2,7 @@ import streamlit as st
 from db.users import get_users
 from db.decks import get_decks
 from db.cards import get_due_cards, update_card
-from core.engine import router
+from core.engine import router, get_intervals
 
 st.title("Study Session")
 
@@ -43,29 +43,29 @@ if all_users:
                     st.info(current_card.back)
                     st.markdown("---")
 
+                    interval = get_intervals(current_card, chosen_deck)
+
                     col1, col2, col3, col4 = st.columns(4)
-                    if col1.button("Again"):
+                    if col1.button(f"Again ({interval[0]})"):
                         updated_card = router(current_card, chosen_deck, 1)
                         new_card = update_card(updated_card)
                         st.session_state.show_answer = False
                         st.rerun()
                     
-                    if col2.button("Hard"):
+                    if col2.button(f"Hard ({interval[1]})"):
                         updated_card = router(current_card, chosen_deck, 2)
                         new_card = update_card(updated_card)
                         st.session_state.show_answer = False
                         st.rerun()
 
-                    if col3.button("Good"):
+                    if col3.button(f"Good ({interval[2]})"):
                         updated_card = router(current_card, chosen_deck, 3)
                         new_card = update_card(updated_card)
                         st.session_state.show_answer = False
                         st.rerun()
 
-                    if col4.button("Easy"):
+                    if col4.button(f"Easy ({interval[3]})"):
                         updated_card = router(current_card, chosen_deck, 4)
                         new_card = update_card(updated_card)
                         st.session_state.show_answer = False
                         st.rerun() 
-
-                    
