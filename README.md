@@ -45,7 +45,7 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 - [ ] Make the UI with Streamlit
 - [ ] Add custom CSS for styling
 
-**Update**: Implemented page to create users, decks and cards. 
+**Update**: Implemented deck view in manage.py 
 
 ---
 

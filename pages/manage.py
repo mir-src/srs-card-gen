@@ -1,14 +1,20 @@
 import streamlit as st
 from db.users import create_user, get_users
 from db.decks import create_deck, get_decks
-from db.cards import create_card
+from db.cards import create_card, get_cards
 
+st.title("Creation Page")
+st.markdown("---")
+
+st.subheader("Create a user")
 with st.form("Create User", clear_on_submit=True):
     username = st.text_input("Enter the username")
     if st.form_submit_button("Create User"):
         user = create_user(username)
         st.success("User Created!")
+st.markdown("---")
 
+st.subheader("Create a deck")
 all_users = get_users() or []
 chosen_user = st.selectbox(label="All Users", options=all_users, format_func=lambda u: u.name)
 
@@ -47,3 +53,14 @@ if chosen_user:
                     st.success("You successfully created a flashcard")
 else:
     st.info("Create a user and a deck to start adding flashcards.")
+st.markdown("---")
+
+st.subheader("Deck Inventory")
+if chosen_deck:
+    all_cards = get_cards(chosen_deck.id)
+    if all_cards:
+        st.dataframe(all_cards)
+    else:
+        st.info("This deck is currently empty.")
+
+
