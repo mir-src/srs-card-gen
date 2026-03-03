@@ -45,7 +45,7 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 - [ ] Make the UI with Streamlit
 - [ ] Add custom CSS for styling
 
-**Update**: Fixed review logic.
+**Update**: Implemented simple page to create users and decks and modified decks.py to be able to add learning_steps and relearning steps. 
 
 ---
 
