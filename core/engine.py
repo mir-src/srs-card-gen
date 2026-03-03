@@ -75,49 +75,56 @@ def router(my_card: Card, deck: Deck, user_rating: int):
     if my_card.state == 'new':
         if user_rating == 1:
             my_card.step = 0
-            my_card.state = 'learning'
             new_due_date = update_due_date(learning_steps[my_card.step])
             my_card.due_date = new_due_date
-
+            my_card.state = 'learning'
 
         elif user_rating == 2:
             my_card.step += 0
-            my_card.state = 'learning'
             new_due_date = update_due_date(learning_steps[my_card.step])
             my_card.due_date = new_due_date
+            my_card.state = 'learning'
 
         elif user_rating == 3:
             my_card.step += 1
             if my_card.step != learning_index:
                 new_due_date = update_due_date(learning_steps[my_card.step])
                 my_card.due_date = new_due_date
+                my_card.state = 'learning'
+
             elif my_card.step == learning_index:
-                my_card.state = 'review'
-                return process_review(my_card=my_card, rating_value=user_rating)
+                my_card = process_review(my_card=my_card, rating_value=user_rating)
+                return my_card
         else:
+            my_card = process_review(my_card=my_card, rating_value=user_rating)
             my_card.state = 'review'
-            return process_review(my_card=my_card, rating_value=user_rating)
+            return my_card
 
     elif my_card.state == 'learning':
         if user_rating == 1:
             my_card.step = 0
             new_due_date = update_due_date(learning_steps[my_card.step])
             my_card.due_date = new_due_date
+
         elif user_rating == 2:
             my_card.step += 0
             new_due_date = update_due_date(learning_steps[my_card.step])
             my_card.due_date = new_due_date
+        
         elif user_rating == 3:
             my_card.step += 1
             if my_card.step != learning_index:
                 new_due_date = update_due_date(learning_steps[my_card.step])
                 my_card.due_date = new_due_date
+            
             if my_card.step >= learning_index:
+                my_card = process_review(my_card=my_card, rating_value=user_rating)
                 my_card.state = 'review'
-                return process_review(my_card=my_card, rating_value=user_rating)
+                return my_card
         else:
+            my_card = process_review(my_card=my_card, rating_value=user_rating)
             my_card.state = 'review'
-            return process_review(my_card=my_card, rating_value=user_rating)
+            return my_card
 
     elif my_card.state == 'relearning':
         if user_rating == 1:
@@ -134,11 +141,14 @@ def router(my_card: Card, deck: Deck, user_rating: int):
                 new_due_date = update_due_date(relearning_steps[my_card.step])
                 my_card.due_date = new_due_date
             if my_card.step >= relearning_index:
+                my_card = process_review(my_card=my_card, rating_value=user_rating)
                 my_card.state = 'review'
-                return process_review(my_card=my_card, rating_value=user_rating)
+                return my_card
         else:
+            
+            my_card = process_review(my_card=my_card, rating_value=user_rating)
             my_card.state = 'review'
-            return process_review(my_card=my_card, rating_value=user_rating)
+            return my_card
 
     elif my_card.state == 'review':
         if user_rating == 1:

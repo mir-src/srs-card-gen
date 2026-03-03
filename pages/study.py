@@ -1,59 +1,60 @@
 import streamlit as st
-from db.cards import get_cards
+from db.cards import get_due_cards, update_card
+from core.engine import router
+from db.decks import get_deck
 
 st.title("Study Session")
 
-if "current_index" not in st.session_state:
-    st.session_state.current_index = 0
+deck = get_deck(1)
+if not deck:
+    st.error("Deck not found!")
+    st.stop()
 
-cards = get_cards(deck_id=1)
+due_cards = get_due_cards(1)
 
-if not cards:
-    st.info("No cards in this deck yet! Go to the generator to make some.")
+if "show_answer" not in st.session_state:
+    st.session_state.show_answer = False
 
-elif st.session_state.current_index >= len(cards):
-    st.success("You've finished studying all your cards!")
-    if st.button("Restart Deck"):
-        st.session_state.current_index = 0
-        st.rerun()
-
+if not due_cards:
+    st.success("You finished your reviews!")
 else:
-    current_card = cards[st.session_state.current_index]
+    current_card = due_cards[0]
+
+    st.write("Front of the card")
+    st.info(current_card.front)
     st.markdown("---")
-    st.subheader("Front")
-    st.title(current_card.front)
 
-    if "show_answer" not in st.session_state:
-        st.session_state.show_answer = False
-
-    if not st.session_state.show_answer:
-        if st.button("Show Answer", use_container_width=True):
+    if st.session_state.show_answer == False:
+        if st.button("Show Answer"):
             st.session_state.show_answer = True
             st.rerun()
-    
     else:
+        st.write("Back of the card")
+        st.info(current_card.back)
         st.markdown("---")
-        st.subheader("Back")
-        st.write(current_card.back)
-
-        st.markdown("---")
-        st.write("How well did you know this?")
 
         col1, col2, col3, col4 = st.columns(4)
-        if col1.button("🔴 Again", use_container_width=True):
+        if col1.button("Again"):
+            updated_card = router(current_card, deck, 1) 
+            new_card = update_card(updated_card)
             st.session_state.show_answer = False
-            st.session_state.current_index += 1
-            st.rerun()
-        if col2.button("🟠 Hard", use_container_width=True):
-            st.session_state.show_answer = False
-            st.session_state.current_index += 1
-            st.rerun()
-        if col3.button("🟢 Good", use_container_width=True):
-            st.session_state.show_answer = False
-            st.session_state.current_index += 1
-            st.rerun()
-        if col4.button("🔵 Easy", use_container_width=True):
-            st.session_state.show_answer = False
-            st.session_state.current_index += 1
             st.rerun()
 
+        if col2.button("Hard"):
+            updated_card = router(current_card, deck, 2) 
+            new_card = update_card(updated_card)
+            st.session_state.show_answer = False
+            st.rerun()
+
+        if col3.button("Good"):
+            updated_card = router(current_card, deck, 3) 
+            new_card = update_card(updated_card)
+            st.session_state.show_answer = False
+            st.rerun()
+
+        if col4.button("Easy"):
+            updated_card = router(current_card, deck, 4) 
+            new_card = update_card(updated_card)
+            st.session_state.show_answer = False
+            st.rerun()
+    
