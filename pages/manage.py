@@ -34,6 +34,7 @@ st.markdown("---")
 st.subheader("Create a Flashcard")
 
 if chosen_user:
+    chosen_deck = None
     user_decks = get_decks(chosen_user.id)
     if user_decks:
         chosen_deck = st.selectbox(
@@ -62,5 +63,5 @@ if chosen_deck:
         st.dataframe(all_cards)
     else:
         st.info("This deck is currently empty.")
-
-
+else:
+    st.info("Select a deck to display cards")

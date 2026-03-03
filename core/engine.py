@@ -1,6 +1,7 @@
 import fsrs
 from db.models import Card, Deck
 from datetime import datetime, timezone, timedelta
+import copy
 
 STATE_TO_FSRS = {
     'new': fsrs.State.Learning,
@@ -160,3 +161,28 @@ def router(my_card: Card, deck: Deck, user_rating: int):
         else:
             return process_review(my_card=my_card, rating_value=user_rating)
     return my_card
+
+def get_intervals(current_card: Card, deck: Deck) -> list:
+    intervals = []
+    now = datetime.now(timezone.utc)
+
+    for i in range(1, 5):
+        card_copy = copy.deepcopy(current_card)
+        routed_card = router(card_copy, deck, i)
+        delta = routed_card.due_date - now
+        minutes = delta.total_seconds() / 60
+        if minutes < 60:
+            intervals.append(f"{max(1, int(minutes))}m")
+        elif minutes < 1440:
+            intervals.append(f"{int(minutes // 60)}h")
+        elif delta.days < 30:
+            intervals.append(f"{delta.days}d")
+        elif delta.days < 365:
+            intervals.append(f"{delta.days // 30}m")
+        else:
+            intervals.append(f"{delta.days // 365}y")
+
+    return intervals
+
+
+
