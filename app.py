@@ -28,7 +28,7 @@ if user_decks:
     st.markdown("---")
 
     for deck in user_decks:
-        due_cards = get_due_cards(deck.id)
+        due_cards = get_due_cards(deck, st.session_state.active_user_id)
         due_count = len(due_cards) if due_cards else 0
         
         c1, c2, c3 = st.columns([3, 1, 1])

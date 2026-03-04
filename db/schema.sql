@@ -49,6 +49,7 @@ CREATE TABLE reviews (
         CHECK (rating BETWEEN 1 and 4),
     response_time REAL NOT NULL,
     review_datetime TIMESTAMP NOT NULL,
+    state_at_review TEXT NOT NULL,
     FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
 );
 CREATE TABLE media (

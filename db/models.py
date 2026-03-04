@@ -61,6 +61,7 @@ class Review:
     rating: int
     response_time: float
     review_datetime: datetime = field(default_factory=datetime.now)
+    state_at_review: str = ''
 
 @dataclass
 class Media:
