@@ -43,7 +43,7 @@ class Deck:
 class User:
     id: int
     name: str
-
+    password_hash: str
 
 @dataclass(frozen=True)
 class Review:

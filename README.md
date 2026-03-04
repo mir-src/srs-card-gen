@@ -42,11 +42,11 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 - [x] Included Ollama Local AI
 - [x] Add Groq AI functionality
 - [x] Add TTS for language flashcards
+- [x] Implement User Auth
 - [ ] Make the UI with Streamlit
 - [ ] Add custom CSS for styling
 
-**Update**: Implemented functional anki review logic.
-
+**Update**: Implemented user auth.
 
 ---
 

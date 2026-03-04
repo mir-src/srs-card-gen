@@ -5,3 +5,4 @@ gTTS
 fsrs
 dotenv
 groq
+bcrypt
