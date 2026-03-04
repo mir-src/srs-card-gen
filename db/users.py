@@ -2,18 +2,18 @@ from db.core import execute_insert, execute_write, fetch_one, fetch_all
 from db.models import User
 import bcrypt
 
-def create_user(username: str, plain_text_password: str) -> int | None:
+def create_user(user: str, plain_text_password: str) -> int | None:
     password_bytes = plain_text_password.encode('utf-8')
 
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password_bytes, salt)
 
-    sql = "INSERT INTO users (username, password_hash) VALUES (?,?)"
-    return execute_insert(sql, (username, hashed_password.decode('utf-8')))
+    sql = "INSERT INTO users (name, password_hash) VALUES (?,?)"
+    return execute_insert(sql, (user, hashed_password.decode('utf-8')))
 
-def verify_login(username: str, plain_text_password: str) -> User | None:
-    user = fetch_one("SELECT * FROM users WHERE username = ?", (username,), User)
-
+def verify_login(name: str, plain_text_password: str) -> User | None:
+    user = fetch_one("SELECT * FROM users WHERE name = ?", (name,), User) 
+    
     if not user:
         return None
     
