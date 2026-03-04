@@ -10,6 +10,10 @@ class Card:
     deck_id: int
     front: str
     back: str
+    audio_front: str
+    audio_back: str
+    
+    cloze_text: str = ''
 
     # TIMESTAMPS
     creation_date: datetime = field(default_factory=datetime.now)
@@ -31,6 +35,7 @@ class Card:
     elapsed_days: int = 0
     scheduled_days: int = 0
 
+
 @dataclass
 class Deck:
     id: int
@@ -38,6 +43,8 @@ class Deck:
     user_id: int
     learning_steps: str = '1m 10m'
     relearning_steps: str = '10m'
+    new_per_day: int = 20
+    reviews_per_day: int = 200
 
 @dataclass
 class User:
@@ -49,6 +56,8 @@ class User:
 class Review:
     id: int
     card_id: int
+    user_id: int
+    deck_id: int
     rating: int
     response_time: float
     review_datetime: datetime = field(default_factory=datetime.now)

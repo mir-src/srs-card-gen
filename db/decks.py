@@ -1,22 +1,24 @@
 from db.core import execute_insert, execute_write, fetch_one, fetch_all
 from db.models import Deck
 
-def create_deck(user_id: int, name: str, learning_steps: str, relearning_steps: str) -> int | None:
+def create_deck(user_id: int, name: str, learning_steps: str, relearning_steps: str, new_per_day: int = 20, reviews_per_day: int = 200) -> int | None:
     sql = """
     INSERT INTO decks
     (user_id,
     name,
     learning_steps,
-    relearning_steps
-    ) VALUES (?,?,?,?)
+    relearning_steps,
+    new_per_day,
+    reviews_per_day
+    ) VALUES (?,?,?,?,?,?)
     """
-    return execute_insert(sql, (user_id, name, learning_steps, relearning_steps))
+    return execute_insert(sql, (user_id, name, learning_steps, relearning_steps, new_per_day, reviews_per_day))
 
 def delete_deck(deck_id: int) -> bool:
     return execute_write("DELETE FROM decks WHERE id = ?", (deck_id,))
 
-def update_deck(deck_id: int, name: str) -> bool:
-    return execute_write("UPDATE decks SET name = ? WHERE id = ?", (name, deck_id))
+def update_deck(deck_id: int, name: str, learning_steps: str, relearning_steps: str, new_per_day: int, reviews_per_day: int) -> bool:
+    return execute_write("UPDATE decks SET name = ?, learning_steps = ?, relearning_steps = ?, new_per_day = ?, reviews_per_day = ? WHERE id = ?", (name, learning_steps, relearning_steps, new_per_day, reviews_per_day, deck_id))
 
 def get_deck(deck_id: int) -> Deck | None:
     return fetch_one("SELECT * FROM decks WHERE id = ?", (deck_id,), Deck)

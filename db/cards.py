@@ -2,7 +2,7 @@ from db.core import execute_write, execute_insert, fetch_one, fetch_all
 from db.models import Card
 from datetime import datetime, timezone, timedelta
 
-def create_card(deck_id: int, front: str, back: str, card_type: str = 'basic', state: str = 'new'):
+def create_card(deck_id: int, front: str, back: str, card_type: str = 'basic', state: str = 'new', audio_front: str = '', audio_back: str = '', cloze_text: str = ''):
     now = datetime.now()
     creation_date = now
     due_date = now
@@ -14,8 +14,11 @@ def create_card(deck_id: int, front: str, back: str, card_type: str = 'basic', s
         card_type,
         state,
         creation_date,
-        due_date)
-        VALUES (?,?,?,?,?,?,?)
+        due_date,
+        audio_front,
+        audio_back,
+        cloze_text)
+        VALUES (?,?,?,?,?,?,?,?,?,?)
     """,(
         deck_id,
         front,
@@ -23,7 +26,10 @@ def create_card(deck_id: int, front: str, back: str, card_type: str = 'basic', s
         card_type,
         state,
         creation_date,
-        due_date
+        due_date,
+        audio_front,
+        audio_back,
+        cloze_text
     )
     )
 

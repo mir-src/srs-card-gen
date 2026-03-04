@@ -13,7 +13,7 @@ def create_user(user: str, plain_text_password: str) -> int | None:
 
 def verify_login(name: str, plain_text_password: str) -> User | None:
     user = fetch_one("SELECT * FROM users WHERE name = ?", (name,), User) 
-    
+
     if not user:
         return None
     
@@ -24,6 +24,14 @@ def verify_login(name: str, plain_text_password: str) -> User | None:
         return user
     else:
         return None
+    
+def update_password(user_id: int, new_hashed_password: str = ''):
+    sql = """
+    UPDATE users
+    SET password_hash = ?
+    WHERE id = ?
+    """
+    return execute_write(sql, (new_hashed_password, user_id))
 
 def delete_user(user_id: int) -> bool:
     return execute_write("DELETE FROM users WHERE id = ?", (user_id,))
