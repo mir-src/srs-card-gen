@@ -89,10 +89,11 @@ with tab_decks:
             r_steps = col2.text_input("Relearning Steps", value="10m")
             n_lim = col1.number_input("New Cards / Day", value=20, min_value=0)
             r_lim = col2.number_input("Reviews / Day", value=200, min_value=0)
+            l_tresh = col1.number_input("Leech Treshold", value=8, min_value=1)
             
             if st.form_submit_button("Create Deck"):
                 if d_name:
-                    create_deck(user_id, d_name, l_steps, r_steps, n_lim, r_lim)
+                    create_deck(user_id, d_name, l_steps, r_steps, n_lim, r_lim, l_tresh)
                     st.success(f"Deck '{d_name}' created!")
                     st.rerun()
 
@@ -107,9 +108,10 @@ with tab_decks:
                 u_r_steps = c2.text_input("Relearning Steps", value=edit_deck.relearning_steps)
                 u_n_lim = c1.number_input("New / Day", value=edit_deck.new_per_day)
                 u_r_lim = c2.number_input("Reviews / Day", value=edit_deck.reviews_per_day)
+                l_tresh = c1.number_input("Leech Threshold", value=8, min_value=1)
                 
                 if st.form_submit_button("Save Changes"):
-                    update_deck(edit_deck.id, u_name, u_l_steps, u_r_steps, u_n_lim, u_r_lim)
+                    update_deck(edit_deck.id, u_name, u_l_steps, u_r_steps, u_n_lim, u_r_lim, l_tresh)
                     st.success("Deck updated!")
                     st.rerun()
             
@@ -137,7 +139,7 @@ with tab_cards:
                     
                     if st.form_submit_button("Add Card"):
                         if front:
-                            create_card(chosen_deck.id, front, back, card_type=c_type, state='new') 
+                            create_card(chosen_deck.id, front, back, audio_front='', audio_back='', card_type=c_type) 
                             st.success("Card added!")
                             st.rerun()
                         else:

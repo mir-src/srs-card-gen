@@ -11,6 +11,8 @@ CREATE TABLE decks (
     relearning_steps TEXT NOT NULL DEFAULT '10',
     new_per_day INTEGER DEFAULT 20,
     reviews_per_day INTEGER DEFAULT 200,
+    leech_threshold INTEGER DEFAULT 8
+        CHECK(leech_threshold >= 0),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE TABLE cards (
@@ -18,6 +20,9 @@ CREATE TABLE cards (
     deck_id INTEGER NOT NULL,
     front TEXT NOT NULL,
     back TEXT NOT NULL,
+    audio_front TEXT NOT NULL,
+    audio_back TEXT NOT NULL,
+    cloze_text TEXT NOT NULL,
     creation_date TIMESTAMP NOT NULL,
     last_review_date TIMESTAMP,
     due_date TIMESTAMP,
@@ -35,9 +40,8 @@ CREATE TABLE cards (
         CHECK(elapsed_days >= 0),
     scheduled_days INTEGER DEFAULT 0
         CHECK(scheduled_days >= 0),
-    audio_front TEXT NOT NULL,
-    audio_back TEXT NOT NULL,
-    cloze_text TEXT NOT NULL,
+    lapses INTEGER DEFAULT 0
+        CHECK(lapses >= 0),
     FOREIGN KEY (deck_id) REFERENCES decks(id) ON DELETE CASCADE
 );
 CREATE TABLE reviews (

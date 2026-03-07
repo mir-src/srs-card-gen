@@ -1,6 +1,7 @@
 import fsrs
 from db.models import Card, Deck
 from datetime import datetime, timezone, timedelta
+from db.core import get_connection 
 import copy
 
 STATE_TO_FSRS = {
@@ -67,6 +68,18 @@ def update_due_date(step_number: int) -> datetime:
     new_due_date = now + converted_step_number
     return new_due_date
 
+def has_failed_learning(card_id: int) -> bool:
+    with get_connection() as conn:
+        sql = """ 
+        SELECT COUNT(id) as c
+        FROM reviews
+        WHERE card_id = ?
+        AND rating = 1
+        AND state_at_review IN ('new', 'learning')
+        """
+        row = conn.execute(sql, (card_id,)).fetchone()
+        return row['c'] > 0 if row else False
+
 def router(my_card: Card, deck: Deck, user_rating: int):
     learning_steps = convert_steps(deck.learning_steps)
     relearning_steps = convert_steps(deck.relearning_steps)
@@ -88,17 +101,22 @@ def router(my_card: Card, deck: Deck, user_rating: int):
 
         elif user_rating == 3:
             my_card.step += 1
-            if my_card.step != learning_index:
+            if my_card.step < learning_index:
                 new_due_date = update_due_date(learning_steps[my_card.step])
                 my_card.due_date = new_due_date
                 my_card.state = 'learning'
 
-            elif my_card.step == learning_index:
+            else: 
                 my_card = process_review(my_card=my_card, rating_value=user_rating)
+                my_card.state = 'review'
+                
+                if has_failed_learning(my_card.id):
+                    my_card.due_date = datetime.now(timezone.utc) + timedelta(days=1)
+                
                 return my_card
         else:
             my_card = process_review(my_card=my_card, rating_value=user_rating)
-            my_card.state = 'review'
+            my_card.state = 'review' 
             return my_card
 
     elif my_card.state == 'learning':
@@ -114,17 +132,21 @@ def router(my_card: Card, deck: Deck, user_rating: int):
         
         elif user_rating == 3:
             my_card.step += 1
-            if my_card.step != learning_index:
+            if my_card.step < learning_index:
                 new_due_date = update_due_date(learning_steps[my_card.step])
                 my_card.due_date = new_due_date
             
-            if my_card.step >= learning_index:
+            else: 
                 my_card = process_review(my_card=my_card, rating_value=user_rating)
                 my_card.state = 'review'
+          
+                if has_failed_learning(my_card.id):
+                    my_card.due_date = datetime.now(timezone.utc) + timedelta(days=1)
+                
                 return my_card
-        else:
+        else: # ⚡ Easy (4)
             my_card = process_review(my_card=my_card, rating_value=user_rating)
-            my_card.state = 'review'
+            my_card.state = 'review' # Fix: Graduate immediately!
             return my_card
 
     elif my_card.state == 'relearning':
@@ -138,15 +160,14 @@ def router(my_card: Card, deck: Deck, user_rating: int):
             my_card.due_date = new_due_date
         elif user_rating == 3:
             my_card.step += 1
-            if my_card.step != relearning_index:
+            if my_card.step < relearning_index:
                 new_due_date = update_due_date(relearning_steps[my_card.step])
                 my_card.due_date = new_due_date
-            if my_card.step >= relearning_index:
+            else:
                 my_card = process_review(my_card=my_card, rating_value=user_rating)
                 my_card.state = 'review'
                 return my_card
         else:
-            
             my_card = process_review(my_card=my_card, rating_value=user_rating)
             my_card.state = 'review'
             return my_card
@@ -158,8 +179,14 @@ def router(my_card: Card, deck: Deck, user_rating: int):
             new_due_date = update_due_date(relearning_steps[my_card.step])
             my_card.due_date = new_due_date
             my_card.state = 'relearning'
+
+            my_card.lapses += 1
+            if my_card.lapses >= deck.leech_threshold:
+                my_card.is_leech = True
+                my_card.is_suspended = True
         else:
             return process_review(my_card=my_card, rating_value=user_rating)
+            
     return my_card
 
 def get_intervals(current_card: Card, deck: Deck) -> list:

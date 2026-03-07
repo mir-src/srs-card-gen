@@ -3,34 +3,41 @@ from core.engine import get_start_of_day
 from db.models import Card, Deck, Review
 from datetime import datetime, timezone, timedelta
 
-def create_card(deck_id: int, front: str, back: str, card_type: str = 'basic', state: str = 'new', audio_front: str = '', audio_back: str = '', cloze_text: str = ''):
+def create_card(deck_id: int, front: str = '', back = '', audio_front: str = '', audio_back: str = '', cloze_text: str = '', card_type: str = 'basic'):
     now = datetime.now(timezone.utc)
     creation_date = now
     due_date = now
+    step = 0
+    lapses = 0
+    state = 'new'
     return execute_insert("""
         INSERT INTO cards
         (deck_id,
         front,
         back,
-        card_type,
-        state,
-        creation_date,
-        due_date,
         audio_front,
         audio_back,
-        cloze_text)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
+        cloze_text,
+        creation_date,
+        due_date,
+        card_type,
+        state,
+        step,
+        lapses)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
     """,(
         deck_id,
         front,
         back,
-        card_type,
-        state,
-        creation_date,
-        due_date,
         audio_front,
         audio_back,
-        cloze_text
+        cloze_text,
+        creation_date,
+        due_date,
+        card_type,
+        state,
+        step,
+        lapses
     )
     )
 
@@ -49,7 +56,8 @@ def update_card(card: Card) -> bool:
             is_leech = ?, 
             is_suspended = ?, 
             state = ?,
-            step = ?
+            step = ?,
+            lapses = ?
         WHERE id = ?
     """
     ,(
@@ -63,6 +71,7 @@ def update_card(card: Card) -> bool:
         card.is_suspended, 
         card.state, 
         card.step,
+        card.lapses,
         card.id))
 
 def get_card(card_id: int) -> Card | None:
@@ -92,37 +101,34 @@ def get_due_cards(deck: Deck, user_id: int):
     remaining_reviews = max(0, deck.reviews_per_day - reviews_studied_today)
 
     learning_cards = fetch_all(
-        "SELECT * FROM cards WHERE deck_id = ? AND state IN ('learning', 'relearning') AND due_date <= ?",
+        "SELECT * FROM cards WHERE deck_id = ? AND state IN ('learning', 'relearning') AND is_suspended = 0 AND due_date <= ?",
         (deck.id, learn_ahead_time), Card) or []
     
     review_cards = fetch_all(
-        "SELECT * FROM cards WHERE deck_id = ? AND state = 'review' AND due_date <= ? LIMIT ?", 
+        "SELECT * FROM cards WHERE deck_id = ? AND state = 'review' AND is_suspended = 0 AND due_date <= ? ORDER BY due_date ASC LIMIT ?", 
         (deck.id, learn_ahead_time, remaining_reviews), Card) or []
     
     new_cards = fetch_all(
-        "SELECT * FROM cards WHERE deck_id = ? AND state = 'new' LIMIT ?",
+        "SELECT * FROM cards WHERE deck_id = ? AND state = 'new' AND is_suspended = 0 ORDER BY id ASC LIMIT ?",
         (deck.id, remaining_new), Card) or []
     
     current_time = datetime.now(timezone.utc)
     
-    # 1. Overdue stuff first, 2. New cards second, 3. Future learn-ahead cards last
-    def get_priority(c):
-        # We handle naive vs aware datetimes safely just in case
+    overdue_learning = []
+    future_learning = []
+    
+    for c in learning_cards:
         c_due = c.due_date.replace(tzinfo=timezone.utc) if c.due_date.tzinfo is None else c.due_date
         
-        if c.state == 'new':
-            return 1 # Priority 2: New
-        elif c_due <= current_time:
-            return 0 # Priority 1: Overdue
+        if c_due <= current_time:
+            overdue_learning.append(c)
         else:
-            return 2 # Priority 3: Learn-ahead (future)
-
-    queue = learning_cards + review_cards + new_cards
+            future_learning.append(c)
+            
+    overdue_learning.sort(key=lambda c: c.due_date)
+    future_learning.sort(key=lambda c: c.due_date)
     
-    # Sort primarily by the priority tier, and secondarily by exact due date
-    queue.sort(key=lambda c: (get_priority(c), c.due_date))
-
-    return queue
+    return overdue_learning + review_cards + new_cards + future_learning
 
 def log_review(card_id: int, user_id: int, deck_id: int, rating: int, response_time: float, state_at_review: str = ''):
     review_datetime = datetime.now(timezone.utc)
