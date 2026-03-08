@@ -17,18 +17,27 @@ FSRS_TO_STATE = {
     fsrs.State.Relearning: 'relearning'
 }
 
+def ensure_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
 def map_to_fsrs(my_card: Card) -> fsrs.Card:
     f_card = fsrs.Card()
 
-    if my_card.state == 'new':
+    # If it has no memory, treat it as a pristine card
+    if my_card.state == 'new' or my_card.stability == 0.0:
         return f_card
     
-    f_card.due = my_card.due_date
+    f_card.due = ensure_utc(my_card.due_date) or datetime.now(timezone.utc)
+    f_card.last_review = ensure_utc(my_card.last_review_date)
+    
     f_card.stability = my_card.stability if my_card.stability > 0 else None
     f_card.difficulty = my_card.difficulty if my_card.difficulty > 0 else None
     f_card.step = my_card.step
     f_card.state = STATE_TO_FSRS.get(my_card.state, fsrs.State.Learning)
-    f_card.last_review = my_card.last_review_date
 
     return f_card
 
@@ -49,10 +58,9 @@ def process_review(my_card: Card, rating_value: int) -> Card:
 
     now = datetime.now(timezone.utc)
     f_card = map_to_fsrs(my_card)
-
     rating_enum = fsrs.Rating(rating_value)
 
-    new_f_card, review_log = f.review_card(f_card, rating_enum)
+    new_f_card, review_log = f.review_card(f_card, rating_enum, now)
 
     updated_card = map_from_fsrs(my_card, new_f_card)
     return updated_card
@@ -116,7 +124,6 @@ def router(my_card: Card, deck: Deck, user_rating: int):
                 return my_card
         else:
             my_card = process_review(my_card=my_card, rating_value=user_rating)
-            my_card.state = 'review' 
             return my_card
 
     elif my_card.state == 'learning':
@@ -146,7 +153,7 @@ def router(my_card: Card, deck: Deck, user_rating: int):
                 return my_card
         else: # ⚡ Easy (4)
             my_card = process_review(my_card=my_card, rating_value=user_rating)
-            my_card.state = 'review' # Fix: Graduate immediately!
+            my_card.state = 'review'
             return my_card
 
     elif my_card.state == 'relearning':

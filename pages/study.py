@@ -4,8 +4,8 @@ from db.cards import get_due_cards, update_card, log_review
 from core.engine import router, get_intervals
 import time
 from db.models import Card, Deck
+from core.parsers import render_cloze_back, render_cloze_front, check_type_answer
 
-# DOUBLE BOUNCER
 if "active_user_id" not in st.session_state:
     st.switch_page("pages/auth.py")
 
@@ -13,14 +13,17 @@ if "active_deck_id" not in st.session_state:
     st.warning("Please select a deck from the Dashboard first.")
     if st.button("Go to Dashboard"):
         st.switch_page("app.py")
-    st.stop() # Stops the rest of the page from rendering and crashing
+    st.stop()
+
+def submit_guess():
+    st.session_state.saved_guess = st.session_state.user_guess
+    st.session_state.show_answer = True
 
 st.title("Study Session")
 
 if "show_answer" not in st.session_state:
     st.session_state.show_answer = False
 
-# Fetch the specific deck from the backpack
 chosen_deck = get_deck(st.session_state.active_deck_id)
 
 if chosen_deck:
@@ -32,55 +35,80 @@ if chosen_deck:
             st.switch_page("app.py")
     else:
         current_card = due_cards[0]
-
+        st.write("### Database Reality Check:")
+        st.write(f"State: {current_card.state}")
+        st.write(f"Due Date: {current_card.due_date}")
+        st.write(f"Stability: {current_card.stability}")
         st.write("Front of the card")
-        st.info(current_card.front)
+
+        if current_card.card_type == 'cloze':
+            safe_front = render_cloze_front(current_card.front)
+            st.markdown(f"<div style='text-align: center; font-size: 1.5rem; padding: 20px; background-color: #1e1e2e; border-radius: 12px; margin-bottom: 20px;'>{safe_front}</div>", unsafe_allow_html=True)
+        else:
+            st.info(current_card.front)
+
+        if current_card.card_type == 'type' and not st.session_state.show_answer:
+            st.text_input("Type your answer here (Press Enter to flip):", key="user_guess", on_change=submit_guess)
+
         st.markdown("---")
         start_time = time.perf_counter()
 
         if st.session_state.show_answer == False:
             if st.button("Show Answer"):
+                if "user_guess" in st.session_state:
+                    st.session_state.saved_guess = st.session_state.user_guess
                 st.session_state.show_answer = True
                 st.rerun()
         else:
-            st.write("Back of the card")
-            st.info(current_card.back)
+            if current_card.card_type == 'cloze':
+                safe_back = render_cloze_back(current_card.front)
+                st.markdown(f"<div style='text-align: center; font-size: 1.5rem; padding: 20px; background-color: #1e1e2e; border-radius: 12px; margin-bottom: 20px;'>{safe_back}</div>", unsafe_allow_html=True)
+                if current_card.back:
+                    st.info(current_card.back)
+            
+            elif current_card.card_type == 'type':
+                user_guess = st.session_state.get("saved_guess", "")
+                diff_html = check_type_answer(current_card.back, user_guess)
+                st.markdown(f"<div style='text-align: center; font-size: 1.5rem; padding: 20px; background-color: #1e1e2e; border-radius: 12px; margin-bottom: 20px; letter-spacing: 2px;'>{diff_html}</div>", unsafe_allow_html=True)
+            
+            else:
+                st.info(current_card.back)
+            
             st.markdown("---")
 
             interval = get_intervals(current_card, chosen_deck)
-
             original_state = current_card.state
 
             col1, col2, col3, col4 = st.columns(4)
-            col1, col2, col3, col4 = st.columns(4)
-            if col1.button(f"Again ({interval[0]})"):
+            
+            if col1.button(f"Again ({interval[0]})", key=f"again_btn_{current_card.id}"):
                 updated_card = router(current_card, chosen_deck, 1)
-                answer_time = time.perf_counter() - start_time
-                log_review(card_id=current_card.id, deck_id=chosen_deck.id, user_id=chosen_deck.user_id, response_time=answer_time, rating=1, state_at_review=original_state)
+                log_review(card_id=current_card.id, deck_id=chosen_deck.id, user_id=chosen_deck.user_id, response_time=time.perf_counter() - start_time, rating=1, state_at_review=original_state)
                 update_card(updated_card)
                 st.session_state.show_answer = False
+                if "saved_guess" in st.session_state: del st.session_state["saved_guess"]
                 st.rerun()
             
-            if col2.button(f"Hard ({interval[1]})"):
+            if col2.button(f"Hard ({interval[1]})",key=f"hard_btn_{current_card.id}"):
                 updated_card = router(current_card, chosen_deck, 2)
-                answer_time = time.perf_counter() - start_time
-                log_review(card_id=current_card.id, deck_id=chosen_deck.id, user_id=chosen_deck.user_id, response_time=answer_time, rating=2, state_at_review=original_state)
+                log_review(card_id=current_card.id, deck_id=chosen_deck.id, user_id=chosen_deck.user_id, response_time=time.perf_counter() - start_time, rating=2, state_at_review=original_state)
                 update_card(updated_card)
                 st.session_state.show_answer = False
+                if "saved_guess" in st.session_state: del st.session_state["saved_guess"]
                 st.rerun()
 
-            if col3.button(f"Good ({interval[2]})"):
+            if col3.button(f"Good ({interval[2]})", key=f"good_btn_{current_card.id}"):
                 updated_card = router(current_card, chosen_deck, 3)
-                answer_time = time.perf_counter() - start_time
-                log_review(card_id=current_card.id, deck_id=chosen_deck.id, user_id=chosen_deck.user_id, response_time=answer_time, rating=3, state_at_review=original_state)
+                log_review(card_id=current_card.id, deck_id=chosen_deck.id, user_id=chosen_deck.user_id, response_time=time.perf_counter() - start_time, rating=3, state_at_review=original_state)
                 update_card(updated_card)
                 st.session_state.show_answer = False
+                if "saved_guess" in st.session_state: del st.session_state["saved_guess"]
                 st.rerun()
 
-            if col4.button(f"Easy ({interval[3]})"):
+            if col4.button(f"Easy ({interval[3]})", key=f"easy_btn_{current_card.id}"):
                 updated_card = router(current_card, chosen_deck, 4)
-                answer_time = time.perf_counter() - start_time
-                log_review(card_id=current_card.id, deck_id=chosen_deck.id, user_id=chosen_deck.user_id, response_time=answer_time, rating=4, state_at_review=original_state)
+                log_review(card_id=current_card.id, deck_id=chosen_deck.id, user_id=chosen_deck.user_id, response_time=time.perf_counter() - start_time, rating=4, state_at_review=original_state)
                 update_card(updated_card)
                 st.session_state.show_answer = False
+                if "saved_guess" in st.session_state: del st.session_state["saved_guess"]
                 st.rerun()

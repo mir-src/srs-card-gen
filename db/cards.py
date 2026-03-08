@@ -45,6 +45,7 @@ def delete_card(card_id: int) -> bool:
     return execute_write("DELETE FROM cards WHERE id = ?", (card_id,))
 
 def update_card(card: Card) -> bool:
+    print(f"DEBUG: Updating Card {card.id} - State: {card.state}, Due: {card.due_date}")
     return execute_write("""
         UPDATE cards
         SET front = ?, 
@@ -101,15 +102,15 @@ def get_due_cards(deck: Deck, user_id: int):
     remaining_reviews = max(0, deck.reviews_per_day - reviews_studied_today)
 
     learning_cards = fetch_all(
-        "SELECT * FROM cards WHERE deck_id = ? AND state IN ('learning', 'relearning') AND is_suspended = 0 AND due_date <= ?",
+        "SELECT * FROM cards WHERE deck_id = ? AND state IN ('learning', 'relearning') AND IFNULL(is_suspended, 0) = 0 AND due_date <= ?",
         (deck.id, learn_ahead_time), Card) or []
     
     review_cards = fetch_all(
-        "SELECT * FROM cards WHERE deck_id = ? AND state = 'review' AND is_suspended = 0 AND due_date <= ? ORDER BY due_date ASC LIMIT ?", 
+        "SELECT * FROM cards WHERE deck_id = ? AND state = 'review' AND IFNULL(is_suspended, 0) = 0 AND due_date <= ? ORDER BY due_date ASC LIMIT ?", 
         (deck.id, learn_ahead_time, remaining_reviews), Card) or []
     
     new_cards = fetch_all(
-        "SELECT * FROM cards WHERE deck_id = ? AND state = 'new' AND is_suspended = 0 ORDER BY id ASC LIMIT ?",
+        "SELECT * FROM cards WHERE deck_id = ? AND state = 'new' AND IFNULL(is_suspended, 0) = 0 ORDER BY id ASC LIMIT ?",
         (deck.id, remaining_new), Card) or []
     
     current_time = datetime.now(timezone.utc)
