@@ -2,7 +2,9 @@ from groq import Groq
 import ollama
 from dotenv import load_dotenv
 import os
+import re
 import json
+import requests
 from deep_translator import GoogleTranslator
 
 load_dotenv(override=True)
@@ -10,41 +12,41 @@ load_dotenv(override=True)
 AI_MODE = os.getenv("AI_MODE")
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-def generate_knowledge_back(front_prompt: str, local_model: str = 'llama3.2') -> str:
-    system_prompt_local = """
-    You are a professional flashcard creator.
-    The user will give you a concept or question.
-    Write the back of the flashcard.
-    Rules: Keep it under 3 sentences. Be highly accurate. DO NOT include conversational filler. Just the answer. Answer only in English regardless of the language the user asks the question in.
-    """
-
-    system_prompt_groq = """
-    You are a professional flashcard creator.
-    The user will give you a concept or question.
-    Write the back of the flashcard.
-    Rules: Keep it under 3 sentences. Be highly accurate. DO NOT include conversational filler. Just the answer.
+def generate_knowledge_back(front_prompt: str, local_model: str = 'llama3.2') -> dict:
+    system_prompt = f"""
+    You are a professional flashcard creator. 
+    Return ONLY a JSON object with the following keys:
+    {{
+        "front": "The question/concept provided",
+        "back": "The accurate, concise answer (max 3 sentences)"
+    }}
     """
 
     if AI_MODE == "LOCAL":
-        response = ollama.chat(model=local_model, messages=[
-            {'role': 'system', 'content': system_prompt_local},
-            {'role': 'user', 'content': front_prompt}
-        ])
-        return response['message']['content'].strip()
+        response = ollama.chat(
+            model=local_model, 
+            format='json', 
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': front_prompt}
+            ]
+        )
+        content = response.get('message', {}).get('content')
+        return json.loads(content) if content else {"error": "Local AI failed"}
+        
     else:
         groq_response = client.chat.completions.create(
             messages=[
-                {"role": "system", "content":system_prompt_groq},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": front_prompt}
             ],
             model="llama-3.3-70b-versatile",
+            response_format={"type": "json_object"}
         )
-        
         content = groq_response.choices[0].message.content
+        return json.loads(content or "{}")
 
-        return content.strip() if content else "No response generated."
-
-def generate_language_card(target_word: str, language: str) -> dict:
+def generate_language_card(target_word: str, target_language_example: str, language: str) -> dict:
     system_prompt_local = f"""
     You are a professional {language} teacher.
     Provide a simple, natural example sentence in {language} for the word '{target_word}'.
@@ -53,9 +55,7 @@ def generate_language_card(target_word: str, language: str) -> dict:
     {{
        "definition": null,
        "example_sentence_foreign": "The sentence in {language} containing '{target_word}'",
-       "example_sentence_english": "The translation of the sentence",
-       "word_hiragana": "If Japanese, provide hiragana for '{target_word}'. Otherwise null.",
-       "sentence_hiragana": "If Japanese, provide hiragana for the example sentence. Otherwise null."
+       "example_sentence_english": "The translation of the 'example_sentence_foreign' in english"
     }}
     """
 
@@ -65,11 +65,11 @@ def generate_language_card(target_word: str, language: str) -> dict:
     
     Return ONLY a JSON object with these exact keys:
     {{
-       "definition": "The accurate English translation of '{target_word}' (max 3 words)",
+       "definition": "The accurate {target_language_example} translation of '{target_word}' (max 3 words)",
        "example_sentence_foreign": "The sentence in {language} containing '{target_word}'",
-       "example_sentence_english": "The English translation of the example sentence",
+       "example_sentence_language": "Translation of {target_word} in {target_language_example}",
        "word_hiragana": "If Japanese, provide hiragana for '{target_word}'. Otherwise null.",
-       "sentence_hiragana": "If Japanese, provide hiragana for the example sentence. Otherwise null."
+       "sentence_hiragana": "If Japanese, provide hiragana for 'example_sentence_foreign'. Otherwise null."
     }}
     """
 
@@ -79,16 +79,14 @@ def generate_language_card(target_word: str, language: str) -> dict:
                 {'role': 'system', 'content': system_prompt_local},
                 {'role': 'user', 'content': target_word}
             ])
-
             card_data = json.loads(response['message']['content'])
-
-            translated_definition = GoogleTranslator(source='auto', target='en').translate(target_word)
-
-            card_data['definition'] = " ".join(translated_definition.split()[:3])
-
+      
+            translated = GoogleTranslator(source='auto', target='en').translate(target_word)
+            card_data['definition'] = " ".join(translated.split()[:3]) if translated else "No definition"
+            
             return card_data
-        except json.JSONDecodeError:
-            return {"error": "AI failed to generate valid JSON"}
+        except Exception as e:
+            return {"error": f"Ollama failed: {str(e)}"}
     else:
         groq_response = client.chat.completions.create(
             messages=[
@@ -98,5 +96,75 @@ def generate_language_card(target_word: str, language: str) -> dict:
             model="llama-3.3-70b-versatile",
             response_format={"type": "json_object"}
         )
-        converted_message = groq_response.choices[0].message.content
-        return json.loads(converted_message) if converted_message else {"error": "The Groq answer is empty!"}
+        content = groq_response.choices[0].message.content
+        return json.loads(content) if content else {"error": "Groq failed"}
+
+def extract_json_array(raw_text: str):
+    pattern = r"\[.*\]"
+
+    match = re.search(pattern, raw_text, flags=re.DOTALL)
+
+    if match:
+        json_str = match.group(0)
+
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            return []
+        
+    return []
+
+def process_ai_response(ai_data) -> list:
+    raw_list = [ai_data] if isinstance(ai_data, dict) else ai_data
+    clean_cards = []
+
+    for item in raw_list:
+        if item.get('example_sentence_foreign'): 
+            word = item.get('target_word') or "" 
+            ex_foreign = item.get('example_sentence_foreign', '')
+            definition = item.get('definition', '')
+            ex_trans = item.get('example_sentence_english') or item.get('example_sentence_language', '')
+            
+            front = f"{word}\n{ex_foreign}".strip() if word else ex_foreign.strip()
+            
+            back_parts = [f"Definition: {definition}", f"Translation: {ex_trans}"]
+            
+            word_hira = item.get('word_hiragana')
+            sent_hira = item.get('sentence_hiragana')
+            if word_hira and str(word_hira).lower() != 'null':
+                back_parts.append(f"Reading: {word_hira}")
+            if sent_hira and str(sent_hira).lower() != 'null':
+                back_parts.append(f"Sentence Reading: {sent_hira}")
+            
+            back = "\n".join(back_parts).strip()
+
+        else:
+            front = (item.get('question') or item.get('front') or "").strip()
+            back = (item.get('answer') or item.get('back') or "").strip()
+
+        if front and back:
+            clean_cards.append({
+                "front": front,
+                "back": back,
+                "card_type": "basic"
+            })
+
+    return clean_cards
+
+
+
+def check_services() -> dict:
+    status = {"groq": False, "ollama": False}
+
+    if os.getenv("GROQ_API_KEY"):
+        status["groq"] = True
+    
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=1)
+        if response.status_code == 200:
+            status["ollama"] = True
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        status["ollama"] = False
+
+    return status
+
