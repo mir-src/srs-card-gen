@@ -1,8 +1,11 @@
 import streamlit as st
 import bcrypt
+import core.ai_service as ai_service
+import time
 from db.users import get_user, update_user, delete_user, verify_login, update_password
 from db.decks import create_deck, get_decks, update_deck, delete_deck
 from db.cards import create_card, get_cards, delete_card, update_card
+from core.ai_service import generate_knowledge_back, generate_language_card, process_ai_response, check_services
 
 # THE BOUNCER
 if "active_user_id" not in st.session_state:
@@ -132,11 +135,82 @@ with tab_cards:
         
         if chosen_deck:
             with st.expander("➕ Add New Card"):
+                st.write("### 🤖 Generate with AI")
+
+                ai_status = check_services()
+                available_sources = []
+
+                if ai_status.get("ollama"):
+                    available_sources.append("Ollama AI")
+                if ai_status.get("groq"):
+                    available_sources.append("Groq AI")
+
+                if not available_sources:
+                    st.warning("No AI services detected.")
+                else:
+                    ai_source = st.radio("AI Source", available_sources, horizontal=True)
+                    ai_card_type = st.radio("Card Type", ["Knowledge Card", "Language Card"], horizontal=True)
+
+                    with st.form("ai_card_form", clear_on_submit=True):
+
+                        if ai_card_type == "Knowledge Card":
+                            ai_prompt = st.text_area("Enter concept/question")
+                            target_word = None
+                        else:
+                            col1, col2 = st.columns(2)
+                            target_word = col1.text_input("Target word")
+                            target_language_example = col2.text_input("Translation Language", value="English")
+                            language = st.text_input("Language", value="Spanish")
+                            ai_prompt = None
+
+                        submit_ai = st.form_submit_button("⚡ Generate")
+
+                        if submit_ai:
+                            selected_mode = "LOCAL" if ai_source == "Ollama AI" else "REMOTE"
+
+                            if ai_card_type == "Knowledge Card" and not ai_prompt:
+                                st.error("Prompt required.")
+                            elif ai_card_type == "Language Card" and not target_word:
+                                st.error("Target word required.")
+                            else:
+                                with st.spinner("Generating..."):
+                                    try:
+                                        if ai_card_type == "Knowledge Card":
+                                            ai_raw = generate_knowledge_back(ai_prompt, ai_mode=selected_mode)
+                                        else:
+                                            ai_raw = generate_language_card(
+                                                target_word,
+                                                target_language_example,
+                                                language,
+                                                ai_mode=selected_mode
+                                            )
+
+                                        cards = process_ai_response(ai_raw)
+
+                                        if cards:
+                                            for card in cards:
+                                                create_card(
+                                                    chosen_deck.id,
+                                                    card["front"],
+                                                    card["back"],
+                                                    audio_front='',
+                                                    audio_back='',
+                                                    card_type="basic"
+                                                )
+                                            st.success(f"{len(cards)} card(s) created!")
+                                            time.sleep(1)
+                                            st.rerun()
+                                        else:
+                                            st.error("AI returned nothing.")
+
+                                    except Exception as e:
+                                        st.error(f"Error: {e}")
+
                 with st.form("create_card_form", clear_on_submit=True):
                     c_type = st.selectbox("Card Type", ["basic", "type", "cloze"])
                     front = st.text_area("Front / Cloze Text")
                     back = st.text_area("Back / Extra Notes")
-                    
+
                     if st.form_submit_button("Add Card"):
                         if front:
                             create_card(chosen_deck.id, front, back, audio_front='', audio_back='', card_type=c_type) 

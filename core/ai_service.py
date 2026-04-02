@@ -12,20 +12,19 @@ load_dotenv(override=True)
 AI_MODE = os.getenv("AI_MODE")
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-def generate_knowledge_back(front_prompt: str, local_model: str = 'llama3.2') -> dict:
+def generate_knowledge_back(front_prompt: str, ai_mode: str = "REMOTE", local_model: str = 'llama3.2') -> dict:
     system_prompt = f"""
-    You are a professional flashcard creator. 
+    You are a professional flashcard creator.
     Return ONLY a JSON object with the following keys:
     {{
         "front": "The question/concept provided",
         "back": "The accurate, concise answer (max 3 sentences)"
     }}
     """
-
-    if AI_MODE == "LOCAL":
+    if ai_mode == "LOCAL":
         response = ollama.chat(
-            model=local_model, 
-            format='json', 
+            model=local_model,
+            format='json',
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': front_prompt}
@@ -33,7 +32,6 @@ def generate_knowledge_back(front_prompt: str, local_model: str = 'llama3.2') ->
         )
         content = response.get('message', {}).get('content')
         return json.loads(content) if content else {"error": "Local AI failed"}
-        
     else:
         groq_response = client.chat.completions.create(
             messages=[
@@ -46,13 +44,20 @@ def generate_knowledge_back(front_prompt: str, local_model: str = 'llama3.2') ->
         content = groq_response.choices[0].message.content
         return json.loads(content or "{}")
 
-def generate_language_card(target_word: str, target_language_example: str, language: str) -> dict:
+def generate_language_card(
+    target_word: str,
+    target_language_example: str,
+    language: str,
+    ai_mode: str = "REMOTE",
+    local_model: str = "llama3.2"
+) -> dict:
     system_prompt_local = f"""
     You are a professional {language} teacher.
     Provide a simple, natural example sentence in {language} for the word '{target_word}'.
     
     Return ONLY a JSON object with these keys:
     {{
+       "target_word": "{target_word}",
        "definition": null,
        "example_sentence_foreign": "The sentence in {language} containing '{target_word}'",
        "example_sentence_english": "The translation of the 'example_sentence_foreign' in english"
@@ -65,6 +70,7 @@ def generate_language_card(target_word: str, target_language_example: str, langu
     
     Return ONLY a JSON object with these exact keys:
     {{
+       "target_word": "{target_word}",
        "definition": "The accurate {target_language_example} translation of '{target_word}' (max 3 words)",
        "example_sentence_foreign": "The sentence in {language} containing '{target_word}'",
        "example_sentence_language": "Translation of {target_word} in {target_language_example}",
@@ -73,7 +79,7 @@ def generate_language_card(target_word: str, target_language_example: str, langu
     }}
     """
 
-    if AI_MODE == "LOCAL":
+    if ai_mode == "LOCAL":
         try:
             response = ollama.chat(model='llama3.2', format='json', messages=[
                 {'role': 'system', 'content': system_prompt_local},

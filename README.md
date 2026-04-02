@@ -35,23 +35,11 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
 
 ---
 
-## To-Do:
-- [x] Make database related files
-- [x] Add FSRS math logic into the app
-- [x] Finish making the blueprints for objects
-- [x] Included Ollama Local AI
-- [x] Add Groq AI functionality
-- [x] Add TTS for language flashcards
-- [x] Implement User Auth
-- [ ] Make the UI with Streamlit
-- [ ] Add custom CSS for styling
-
-**Update**: Implemented user auth.
+Update: I implemented AI generated flashcards into the streamlit UI.
 
 ---
 
 ## Author
 **mir-src**
 - 📧 Contact: [264200162+mir-src@users.noreply.github.com](mailto:264200162+mir-src@users.noreply.github.com)
-- Python & C++ Developer 🐍
-- 2D Illustrator 🎨
+- Python Developer
