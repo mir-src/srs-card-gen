@@ -33,12 +33,6 @@ Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY
    ```bash
    streamlit run app.py
 
----
-
-Update: I implemented AI generated flashcards into the streamlit UI.
-
----
-
 ## Author
 **mir-src**
 - 📧 Contact: [264200162+mir-src@users.noreply.github.com](mailto:264200162+mir-src@users.noreply.github.com)

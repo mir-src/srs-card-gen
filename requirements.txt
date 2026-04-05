@@ -6,3 +6,4 @@ fsrs
 dotenv
 groq
 bcrypt
+matplotlib

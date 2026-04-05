@@ -33,6 +33,9 @@ def render_language_front(front_text: str):
                     <div style='text-align:center; font-size:20px; opacity:0.8;'>
                         {sentence}
                     </div>
+                    <div>
+                        
+                    </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.info(front_text)
@@ -87,7 +90,13 @@ if chosen_deck:
             st.text_input("Type your answer here (Press Enter to flip):", key="user_guess", on_change=submit_guess)
         
         if current_card.card_type == 'basic':
-            render_language_front(current_card.front)
+            render_language_front(current_card.front)   
+            
+            if current_card.audio_front and current_card.audio_front.strip():
+                st.audio(current_card.audio_front, autoplay=True)
+    
+            if current_card.audio_back and current_card.audio_back.strip():
+                st.audio(current_card.audio_back, autoplay=False)
 
         st.markdown("---")
         start_time = time.perf_counter()

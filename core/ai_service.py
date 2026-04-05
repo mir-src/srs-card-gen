@@ -6,13 +6,14 @@ import re
 import json
 import requests
 from deep_translator import GoogleTranslator
+from core.audio_service import generate_audio
 
 load_dotenv(override=True)
 
 AI_MODE = os.getenv("AI_MODE")
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-def generate_knowledge_back(front_prompt: str, ai_mode: str = "REMOTE", local_model: str = 'llama3.2') -> dict:
+def generate_knowledge_back(front_prompt: str, ai_mode: str = "REMOTE", local_model: str = 'phi:latest') -> dict:
     system_prompt = f"""
     You are a professional flashcard creator.
     Return ONLY a JSON object with the following keys:
@@ -46,11 +47,12 @@ def generate_knowledge_back(front_prompt: str, ai_mode: str = "REMOTE", local_mo
 
 def generate_language_card(
     target_word: str,
-    target_language_example: str,
+    target_translation_language: str,
     language: str,
     ai_mode: str = "REMOTE",
-    local_model: str = "llama3.2"
+    local_model: str = "phi:latest",
 ) -> dict:
+    # --- Prompt Local & Groq ---
     system_prompt_local = f"""
     You are a professional {language} teacher.
     Provide a simple, natural example sentence in {language} for the word '{target_word}'.
@@ -60,7 +62,7 @@ def generate_language_card(
        "target_word": "{target_word}",
        "definition": null,
        "example_sentence_foreign": "The sentence in {language} containing '{target_word}'",
-       "example_sentence_english": "The translation of the 'example_sentence_foreign' in english"
+       "example_sentence_english": "The translation of the 'example_sentence_foreign' in english",
     }}
     """
 
@@ -71,17 +73,18 @@ def generate_language_card(
     Return ONLY a JSON object with these exact keys:
     {{
        "target_word": "{target_word}",
-       "definition": "The accurate {target_language_example} translation of '{target_word}' (max 3 words)",
+       "definition": "The accurate {target_translation_language} translation of '{target_word}' (max 3 words)",
        "example_sentence_foreign": "The sentence in {language} containing '{target_word}'",
-       "example_sentence_language": "Translation of {target_word} in {target_language_example}",
+       "example_sentence_language": "Translation of {target_word} in {target_translation_language}",
        "word_hiragana": "If Japanese, provide hiragana for '{target_word}'. Otherwise null.",
-       "sentence_hiragana": "If Japanese, provide hiragana for 'example_sentence_foreign'. Otherwise null."
+       "sentence_hiragana": "If Japanese, provide hiragana for 'example_sentence_foreign'. Otherwise null.",
     }}
     """
+    # --- Prompt Local & Groq ---
 
     if ai_mode == "LOCAL":
         try:
-            response = ollama.chat(model='llama3.2', format='json', messages=[
+            response = ollama.chat(model='phi:latest', format='json', messages=[
                 {'role': 'system', 'content': system_prompt_local},
                 {'role': 'user', 'content': target_word}
             ])

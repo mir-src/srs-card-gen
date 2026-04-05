@@ -11,19 +11,15 @@ with tab1:
     st.subheader("Login to your account")
     with st.form("login_form", clear_on_submit=True):
         login_username = st.text_input("Username")
-        # type="password" hides the text with dots!
         login_password = st.text_input("Password", type="password") 
         
         if st.form_submit_button("Login"):
             if login_username and login_password:
-                # 1. Ask the backend to verify
                 user = verify_login(login_username, login_password)
                 
                 if user:
-                    # 2. Save the user to the global session state
                     st.session_state.active_user_id = user.id
                     st.success("Login successful! Redirecting...")
-                    # 3. Teleport them to the dashboard
                     st.switch_page("app.py")
                 else:
                     st.error("Invalid username or password.")

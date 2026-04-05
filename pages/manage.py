@@ -1,6 +1,11 @@
 import streamlit as st
 import bcrypt
+from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import pandas as pd
 import core.ai_service as ai_service
+from core.audio_service import generate_audio
 import time
 from db.users import get_user, update_user, delete_user, verify_login, update_password
 from db.decks import create_deck, get_decks, update_deck, delete_deck
@@ -21,7 +26,7 @@ if current_user is None:
 st.title("Data Inspector")
 st.markdown("---")
 
-tab_profile, tab_decks, tab_cards = st.tabs(["👤 Profile", "📚 Decks", "🗂️ Cards"])
+tab_profile, tab_decks, tab_cards, tab_statistics = st.tabs(["👤 Profile", "📚 Decks", "🗂️ Cards", "📊 Statistics"])
 
 # ==========================================
 # TAB 1: USER PROFILE
@@ -151,8 +156,7 @@ with tab_cards:
                     ai_source = st.radio("AI Source", available_sources, horizontal=True)
                     ai_card_type = st.radio("Card Type", ["Knowledge Card", "Language Card"], horizontal=True)
 
-                    with st.form("ai_card_form", clear_on_submit=True):
-
+                    with st.form("ai_card_form"):
                         if ai_card_type == "Knowledge Card":
                             ai_prompt = st.text_area("Enter concept/question")
                             target_word = None
@@ -177,31 +181,51 @@ with tab_cards:
                                     try:
                                         if ai_card_type == "Knowledge Card":
                                             ai_raw = generate_knowledge_back(ai_prompt, ai_mode=selected_mode)
-                                        else:
+                                            cards = process_ai_response(ai_raw)
+                                            
+                                            if cards:
+                                                for card in cards:
+                                                    create_card(
+                                                        chosen_deck.id,
+                                                        card["front"],
+                                                        card["back"],
+                                                        audio_front='',
+                                                        audio_back='',
+                                                        card_type="basic"
+                                                    )
+                                                st.success(f"{len(cards)} card(s) created!")
+                                                time.sleep(1)
+                                                st.rerun()
+                                            else:
+                                                st.error("AI returned nothing.")
+                                        
+                                        else:  # Language Card
                                             ai_raw = generate_language_card(
-                                                target_word,
-                                                target_language_example,
-                                                language,
+                                                target_word=target_word,
+                                                target_translation_language=target_language_example,
+                                                language=language,
                                                 ai_mode=selected_mode
                                             )
-
-                                        cards = process_ai_response(ai_raw)
-
-                                        if cards:
-                                            for card in cards:
-                                                create_card(
-                                                    chosen_deck.id,
-                                                    card["front"],
-                                                    card["back"],
-                                                    audio_front='',
-                                                    audio_back='',
-                                                    card_type="basic"
-                                                )
-                                            st.success(f"{len(cards)} card(s) created!")
-                                            time.sleep(1)
-                                            st.rerun()
-                                        else:
-                                            st.error("AI returned nothing.")
+                                            target_word_audio = generate_audio(target_word, language=language)
+                                            target_sentence_audio = generate_audio(ai_raw['example_sentence_foreign'], language=language)
+                                            
+                                            cards = process_ai_response(ai_raw)
+                                            
+                                            if cards:
+                                                for card in cards:
+                                                    create_card(
+                                                        chosen_deck.id,
+                                                        card["front"],
+                                                        card["back"],
+                                                        audio_front=target_word_audio,
+                                                        audio_back=target_sentence_audio,
+                                                        card_type="basic"
+                                                    )
+                                                st.success(f"{len(cards)} card(s) created!")
+                                                time.sleep(1)
+                                                st.rerun()
+                                            else:
+                                                st.error("AI returned nothing.")
 
                                     except Exception as e:
                                         st.error(f"Error: {e}")
@@ -282,5 +306,96 @@ with tab_cards:
                     st.rerun()
             else:
                 st.info("No cards in this deck yet.")
+    else:
+        st.info("Create a deck first.")
+
+# ==========================================
+# TAB 4: STATISTICS
+# ==========================================
+with tab_statistics:
+    if user_decks:
+        chosen_deck = st.selectbox("Select Deck for Statistics", options=user_decks, format_func=lambda d: d.name, key="stats_deck_sel")
+        
+        if chosen_deck:
+            all_cards = get_cards(chosen_deck.id) or []
+            
+            if all_cards:
+                # Extract due dates from cards
+                due_dates = []
+                for card in all_cards:
+                    if card.due_date:
+                        try:
+                            due_date = datetime.fromisoformat(card.due_date) if isinstance(card.due_date, str) else card.due_date
+                            due_dates.append(due_date)
+                        except:
+                            pass
+                
+                if due_dates:
+                    # Create bins for the next 30 days
+                    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                    date_range = pd.date_range(start=today, periods=30, freq='D')
+                    
+                    # Count cards due on each day
+                    due_counts = []
+                    for date in date_range:
+                        count = sum(1 for d in due_dates if d.replace(hour=0, minute=0, second=0, microsecond=0) == date)
+                        due_counts.append(count)
+                    
+                    # Create the graph
+                    fig, ax = plt.subplots(figsize=(12, 5), facecolor='#0e1117')
+                    ax.set_facecolor('#1e1e2e')
+                    bars = ax.bar(date_range, due_counts, color='#6366f1', alpha=0.8, edgecolor='#4f46e5', width=0.8)
+                    
+                    ax.set_xlabel('Date', fontsize=12, color='#cbd5e1')
+                    ax.set_ylabel('Cards Due', fontsize=12, color='#cbd5e1')
+                    ax.set_title(f'Flashcard Due Dates - {chosen_deck.name}', fontsize=14, fontweight='bold', color='#cbd5e1')
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+                    ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))
+                    ax.tick_params(colors='#cbd5e1')
+                    plt.xticks(rotation=45)
+                    plt.tight_layout()
+                    
+                    st.pyplot(fig)
+                    
+                    # Statistics summary
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("Total Cards", len(all_cards))
+                    
+                    with col2:
+                        due_today = sum(1 for d in due_dates if d.replace(hour=0, minute=0, second=0, microsecond=0) == today)
+                        st.metric("Due Today", due_today)
+                    
+                    with col3:
+                        tomorrow = today + timedelta(days=1)
+                        due_tomorrow = sum(1 for d in due_dates if d.replace(hour=0, minute=0, second=0, microsecond=0) == tomorrow)
+                        st.metric("Due Tomorrow", due_tomorrow)
+                    
+                    with col4:
+                        due_this_week = sum(1 for d in due_dates if today <= d <= today + timedelta(days=7))
+                        st.metric("Due This Week", due_this_week)
+                    
+                    # Card state breakdown
+                    st.markdown("---")
+                    st.subheader("Card States")
+                    
+                    state_counts = {}
+                    for card in all_cards:
+                        state = card.state or "unknown"
+                        state_counts[state] = state_counts.get(state, 0) + 1
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    states = ['new', 'learning', 'review', 'relearning']
+                    cols = [col1, col2, col3, col4]
+                    
+                    for state, col in zip(states, cols):
+                        with col:
+                            count = state_counts.get(state, 0)
+                            st.metric(state.capitalize(), count)
+                else:
+                    st.info("No cards with due dates yet.")
+            else:
+                st.info("No cards in this deck.")
     else:
         st.info("Create a deck first.")
