@@ -87,6 +87,7 @@ if chosen_deck:
             st.markdown(f"<div style='text-align: center; font-size: 1.5rem; padding: 20px; background-color: #1e1e2e; border-radius: 12px; margin-bottom: 20px;'>{safe_front}</div>", unsafe_allow_html=True)
 
         if current_card.card_type == 'type' and not st.session_state.show_answer:
+            st.info(current_card.front)
             st.text_input("Type your answer here (Press Enter to flip):", key="user_guess", on_change=submit_guess)
         
         if current_card.card_type == 'basic':
