@@ -11,7 +11,14 @@ from core.audio_service import generate_audio
 load_dotenv(override=True)
 
 AI_MODE = os.getenv("AI_MODE")
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+def get_groq_client():
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return None
+    return Groq(api_key=api_key)
+
+
 
 def generate_knowledge_back(front_prompt: str, ai_mode: str = "REMOTE", local_model: str = 'phi:latest') -> dict:
     system_prompt = f"""
@@ -34,6 +41,10 @@ def generate_knowledge_back(front_prompt: str, ai_mode: str = "REMOTE", local_mo
         content = response.get('message', {}).get('content')
         return json.loads(content) if content else {"error": "Local AI failed"}
     else:
+        client = get_groq_client()
+        if not client:
+            return {"error": "groq api key not found"}
+
         groq_response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -97,7 +108,11 @@ def generate_language_card(
         except Exception as e:
             return {"error": f"Ollama failed: {str(e)}"}
     else:
-        groq_response = client.chat.completions.create(
+            client = get_groq_client()
+            if not client:
+                return {"error": "groq api key not found"}
+
+            groq_response = client.chat.completions.create(
             messages=[
                 {'role': 'system', 'content': system_prompt_groq},
                 {'role': 'user', 'content': target_word}
@@ -105,8 +120,8 @@ def generate_language_card(
             model="llama-3.3-70b-versatile",
             response_format={"type": "json_object"}
         )
-        content = groq_response.choices[0].message.content
-        return json.loads(content) if content else {"error": "Groq failed"}
+    content = groq_response.choices[0].message.content
+    return json.loads(content) if content else {"error": "Groq failed"}
 
 def extract_json_array(raw_text: str):
     pattern = r"\[.*\]"
