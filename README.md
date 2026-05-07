@@ -22,9 +22,12 @@ Follow these steps to get the environment running on your local machine:
 2. **pip install -r requirements.txt**
 
 3. **Set up your environment variables:**
-Creanswerate a **.env** file in the root directory and add your Groq key: GROQ_API_KEY=your_key_here
+Create a **.env** file in the root directory and add your Groq key: GROQ_API_KEY=your_key_here
 
-4. **Launch the app:**
+4. **If you want to use Ollama:**
+Inside the **.env** file add this line of code: AI_MODE=LOCAL 
+
+5. **Launch the app:**
    ```bash
    streamlit run app.py
 
