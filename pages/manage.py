@@ -154,7 +154,10 @@ with tab_cards:
                     st.warning("No AI services detected.")
                 else:
                     ai_source = st.radio("AI Source", available_sources, horizontal=True)
-                    ai_card_type = st.radio("Card Type", ["Knowledge Card", "Language Card"], horizontal=True)
+                    if "Groq AI" not in ai_source:
+                        ai_card_type = st.radio("Card Type", ["Knowledge Card"], horizontal=True)
+                    else:    
+                        ai_card_type = st.radio("Card Type", ["Knowledge Card", "Language Card"], horizontal=True)
 
                     with st.form("ai_card_form"):
                         if ai_card_type == "Knowledge Card":
@@ -230,18 +233,51 @@ with tab_cards:
                                     except Exception as e:
                                         st.error(f"Error: {e}")
 
+                c_type = st.selectbox("Card Type", ["basic", "type", "cloze", "language"])
                 with st.form("create_card_form", clear_on_submit=True):
-                    c_type = st.selectbox("Card Type", ["basic", "type", "cloze"])
-                    front = st.text_area("Front / Cloze Text")
-                    back = st.text_area("Back / Extra Notes")
+                    if c_type == 'language':
+                        language = st.text_input("Enter language of target word")
+                        word = st.text_input("Enter target word") 
+                        sentence = st.text_area("Enter example sentence")
+                        word_meaning = st.text_input("Enter word meaning")
+                        sentence_meaning = st.text_area("Enter example sentence meaning")
+                        word_hiragana = st.text_input("Hiragana of Japanese word (Optional)")
+                        sentence_hiragana = st.text_area("Sentence hiragana (Optional)")
 
-                    if st.form_submit_button("Add Card"):
-                        if front:
-                            create_card(chosen_deck.id, front, back, audio_front='', audio_back='', card_type=c_type) 
-                            st.success("Card added!")
-                            st.rerun()
-                        else:
-                            st.error("Front cannot be empty.")
+                        if st.form_submit_button("Add Language Card"):
+                            card_dict = {
+                            "target_word": word,
+                            "definition": word_meaning,
+                            "example_sentence_foreign": sentence,
+                            "example_sentence_language": sentence_meaning,
+                            "word_hiragana": word_hiragana,
+                            "sentence_hiragana": sentence_hiragana
+                            }
+
+                            cards = process_ai_response(card_dict)
+
+                            word_audio = generate_audio(text = word, language = language)
+                            sentence_audio = generate_audio(text = sentence, language = language)
+
+                            if cards:
+                                for card in cards: 
+                                    create_card(deck_id = chosen_deck.id, front = card["front"], back = card["back"],card_type = 'basic', audio_front = word_audio, audio_back = sentence_audio) 
+                                    st.success(f"{len(cards)} Cards added!")
+                                    time.sleep(1)
+                                    st.rerun()
+                            else:    
+                                st.error("Adding card failed, a field was empty.")
+                    else:
+                        front = st.text_area("Front / Cloze Text")
+                        back = st.text_area("Back / Extra Notes")
+                        if st.form_submit_button("Add Normal Card"):
+                            if front:
+                                create_card(chosen_deck.id, front, back, audio_front='', audio_back='', card_type=c_type) 
+                                st.success("Card added!")
+                                st.rerun()
+                            else:
+                                st.error("Front cannot be empty.")
+
 
             st.subheader("🔍 Card Browser (Bulk Edit & Filter)")
             st.caption("Hover over a column header to filter. Select a row and press 'Delete' to remove it.")
@@ -399,3 +435,4 @@ with tab_statistics:
                 st.info("No cards in this deck.")
     else:
         st.info("Create a deck first.")
+

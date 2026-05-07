@@ -1,1 +1,0 @@
-# TODO: Write function that exports a deck's cards to a CSV, with front, back, audio_front, audio_back, cloze_text, card_type. I want to be able to import this CSV flashcard deck to any deck I choose.  

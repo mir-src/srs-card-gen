@@ -151,7 +151,7 @@ def router(my_card: Card, deck: Deck, user_rating: int):
                     my_card.due_date = datetime.now(timezone.utc) + timedelta(days=1)
                 
                 return my_card
-        else: # ⚡ Easy (4)
+        else: # Easy (4)
             my_card = process_review(my_card=my_card, rating_value=user_rating)
             my_card.state = 'review'
             return my_card
