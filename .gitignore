@@ -1,6 +1,9 @@
 *.mp3
 *.db
 
+# settings.json
+.vscode/settings.json
+
 # If you use Streamlit's built-in secrets
 .streamlit/secrets.toml
 

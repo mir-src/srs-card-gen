@@ -1,7 +1,7 @@
 import streamlit as st
 from db.users import verify_login, create_user
 
-st.title("AI Flashcard Laboratory")
+st.title("Memora")
 
 # Create two tabs for a clean UI
 tab1, tab2 = st.tabs(["Login", "Sign Up"])

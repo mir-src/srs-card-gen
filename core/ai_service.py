@@ -95,7 +95,7 @@ def generate_language_card(
 
     if ai_mode == "LOCAL":
         try:
-            response = ollama.chat(model='phi:latest', format='json', messages=[
+            response = ollama.chat(model=local_model, format='json', messages=[
                 {'role': 'system', 'content': system_prompt_local},
                 {'role': 'user', 'content': target_word}
             ])
