@@ -9,8 +9,8 @@ class Card:
     deck_id: int
     front: str
     back: str
-    audio_front: str
-    audio_back: str
+    audio_front: str = ''
+    audio_back: str = ''
     cloze_text: str = ''
     creation_date: datetime = field(default_factory=datetime.now)
     last_review_date: Optional[datetime] = None

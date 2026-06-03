@@ -66,9 +66,14 @@ def process_review(my_card: Card, rating_value: int) -> Card:
     return updated_card
 
 def convert_steps(steps: str) -> list:
+    if not steps or not steps.strip():
+        return []
+
     steps_to_list = steps.replace('m', '').split()
-    make_int_list = [int(n) for n in steps_to_list]
-    return make_int_list 
+    try:
+        return [int(n) for n in steps_to_list]
+    except ValueError:
+        return [10]
 
 def update_due_date(step_number: int) -> datetime:
     now = datetime.now(timezone.utc)
@@ -89,8 +94,9 @@ def has_failed_learning(card_id: int) -> bool:
         return row['c'] > 0 if row else False
 
 def router(my_card: Card, deck: Deck, user_rating: int):
-    learning_steps = convert_steps(deck.learning_steps)
-    relearning_steps = convert_steps(deck.relearning_steps)
+    learning_steps = convert_steps(deck.learning_steps) or [1, 10]
+    relearning_steps = convert_steps(deck.relearning_steps) or [10]
+
     learning_index = len(learning_steps)
     relearning_index = len(relearning_steps)
 
@@ -127,6 +133,9 @@ def router(my_card: Card, deck: Deck, user_rating: int):
             return my_card
 
     elif my_card.state == 'learning':
+        if my_card.step > learning_index:
+            my_card.step = 0
+
         if user_rating == 1:
             my_card.step = 0
             new_due_date = update_due_date(learning_steps[my_card.step])
@@ -157,6 +166,9 @@ def router(my_card: Card, deck: Deck, user_rating: int):
             return my_card
 
     elif my_card.state == 'relearning':
+        if my_card.step > relearning_index:
+            my_card.step = 0
+
         if user_rating == 1:
             my_card.step = 0
             new_due_date = update_due_date(relearning_steps[my_card.step])

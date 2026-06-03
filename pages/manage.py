@@ -236,13 +236,13 @@ with tab_cards:
                 c_type = st.selectbox("Card Type", ["basic", "type", "cloze", "language"])
                 with st.form("create_card_form", clear_on_submit=True):
                     if c_type == 'language':
-                        language = st.text_input("Enter language of target word")
+                        language = st.text_input("Enter language of target word") 
                         word = st.text_input("Enter target word") 
-                        sentence = st.text_area("Enter example sentence")
+                        sentence = st.text_area("Enter example sentence") 
                         word_meaning = st.text_input("Enter word meaning")
-                        sentence_meaning = st.text_area("Enter example sentence meaning")
-                        word_hiragana = st.text_input("Hiragana of Japanese word (Optional)")
-                        sentence_hiragana = st.text_area("Sentence hiragana (Optional)")
+                        sentence_meaning = st.text_area("Enter example sentence meaning") or ""
+                        word_hiragana = st.text_input("Hiragana of Japanese word (Optional)") or ""
+                        sentence_hiragana = st.text_area("Sentence hiragana (Optional)") or ""
 
                         if st.form_submit_button("Add Language Card"):
                             card_dict = {
@@ -254,12 +254,14 @@ with tab_cards:
                             "sentence_hiragana": sentence_hiragana
                             }
 
-                            cards = process_ai_response(card_dict)
+                            if card_dict:
+                                cards = process_ai_response(card_dict) 
 
-                            word_audio = generate_audio(text = word, language = language)
-                            sentence_audio = generate_audio(text = sentence, language = language)
+                            if word and sentence and language:
+                                word_audio = generate_audio(text = word, language = language)
+                                sentence_audio = generate_audio(text = sentence, language = language)
 
-                            if cards:
+                            if cards and word_audio and sentence_audio:
                                 for card in cards: 
                                     create_card(deck_id = chosen_deck.id, front = card["front"], back = card["back"],card_type = 'basic', audio_front = word_audio, audio_back = sentence_audio) 
                                     st.success(f"{len(cards)} Cards added!")
