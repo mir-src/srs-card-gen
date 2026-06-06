@@ -43,6 +43,7 @@ class User:
     id: int
     name: str
     password_hash: str
+    day_start_hour: int = 4
 
 @dataclass(frozen=True)
 class Review:

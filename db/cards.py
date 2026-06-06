@@ -81,9 +81,9 @@ def get_card(card_id: int) -> Card | None:
 def get_cards(deck_id: int) -> list | None:
     return fetch_all("SELECT * FROM cards WHERE deck_id = ?", (deck_id,), Card)
 
-def get_due_cards(deck: Deck, user_id: int):
+def get_due_cards(deck: Deck, user_id: int, day_start: int):
     learn_ahead_time = datetime.now(timezone.utc) + timedelta(minutes=20)
-    start_time = get_start_of_day(4)
+    start_time = get_start_of_day(day_start) or 4
     
     from db.core import get_connection
     with get_connection() as conn:

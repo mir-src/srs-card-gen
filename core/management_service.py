@@ -5,7 +5,6 @@ from db.users import delete_user
 from db.core import fetch_all
 from db.models import Media, User, Deck, Card
 
-# Safe deletion of Media
 def safe_delete_card(card_id: int) -> bool:
     media_files = fetch_all("SELECT * FROM media WHERE card_id = ?", (card_id,), Media)
     
@@ -46,7 +45,6 @@ def safe_delete_deck(deck_id: int) -> bool:
 
     return delete_deck(deck_id)
 
-# Handle filename change when editing front text of card
 def edit_card_text(card_id: int, new_front: str, new_back: str) -> bool:
     card = get_card(card_id)
     if not card:

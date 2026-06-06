@@ -1,6 +1,7 @@
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE,
+    day_start_hour INT NOT NULL DEFAULT '4',
     password_hash TEXT NOT NULL
 );
 CREATE TABLE decks (

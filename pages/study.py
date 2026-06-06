@@ -6,6 +6,7 @@ from core.engine import router, get_intervals
 import time
 from db.models import Card, Deck
 from core.parsers import render_cloze_back, render_cloze_front, check_type_answer
+from db.users import get_day_start, update_user_day_start
 
 if "active_user_id" not in st.session_state:
     st.switch_page("pages/auth.py")
@@ -72,7 +73,8 @@ if "show_answer" not in st.session_state:
 chosen_deck = get_deck(st.session_state.active_deck_id)
 
 if chosen_deck:
-    due_cards = get_due_cards(chosen_deck, chosen_deck.user_id)
+    day_start = get_day_start(chosen_deck.user_id)
+    due_cards = get_due_cards(chosen_deck, chosen_deck.user_id, day_start)
     
     if not due_cards:
         st.success("You finished your reviews for the day!")

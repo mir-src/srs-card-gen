@@ -2,6 +2,7 @@ import streamlit as st
 from db.core import initialize_database
 from db.decks import get_decks
 from db.cards import get_due_cards
+from db.users import get_day_start
 
 # 1. Initialize DB
 initialize_database()
@@ -28,7 +29,8 @@ if user_decks:
     st.markdown("---")
 
     for deck in user_decks:
-        due_cards = get_due_cards(deck, st.session_state.active_user_id)
+        day_start = get_day_start(deck.user_id) 
+        due_cards = get_due_cards(deck, st.session_state.active_user_id, day_start)
         due_count = len(due_cards) if due_cards else 0
         
         c1, c2, c3 = st.columns([3, 1, 1])

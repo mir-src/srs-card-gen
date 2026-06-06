@@ -1,18 +1,14 @@
 import streamlit as st
 import bcrypt
-from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import pandas as pd
-import core.ai_service as ai_service
+from datetime import datetime, timedelta, timezone
 from core.audio_service import generate_audio
 import time
-from db.users import get_user, update_user, delete_user, verify_login, update_password
+from db.users import get_user, update_user, delete_user, verify_login, update_password, update_user_day_start, get_day_start
 from db.decks import create_deck, get_decks, update_deck, delete_deck
 from db.cards import create_card, get_cards, delete_card, update_card
 from core.ai_service import generate_knowledge_back, generate_language_card, process_ai_response, check_services
+from core.engine import ensure_utc, get_start_of_day    
 
-# THE BOUNCER
 if "active_user_id" not in st.session_state:
     st.switch_page("pages/auth.py")
 
@@ -28,13 +24,10 @@ st.markdown("---")
 
 tab_profile, tab_decks, tab_cards, tab_statistics = st.tabs(["👤 Profile", "📚 Decks", "🗂️ Cards", "📊 Statistics"])
 
-# ==========================================
-# TAB 1: USER PROFILE
-# ==========================================
 with tab_profile:
     st.subheader("Profile Settings")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         with st.form("change_name_form"):
             new_name = st.text_input("Change Username", value=current_user.name)
@@ -50,7 +43,6 @@ with tab_profile:
             if st.form_submit_button("Update Password"):
                 if verify_login(current_user.name, old_pass):
                     if new_pass:
-                        # 🔐 HASH THE NEW PASSWORD BEFORE SAVING
                         salt = bcrypt.gensalt()
                         hashed_new = bcrypt.hashpw(new_pass.encode('utf-8'), salt).decode('utf-8')
                         update_password(user_id, hashed_new)
@@ -59,6 +51,14 @@ with tab_profile:
                         st.warning("New password cannot be empty.")
                 else:
                     st.error("Incorrect current password.")
+    with col3:
+        with st.form("set start of day", clear_on_submit=True):
+            day_start = st.number_input(label="Enter day start", min_value=0, max_value=23)
+            if st.form_submit_button("Update day start"):
+                update_user_day_start(user_id, day_start)
+                st.success("Start of day updated succesfully")
+                time.sleep(0.2)
+                st.rerun()
 
     st.markdown("---")
     st.subheader("Danger Zone")
@@ -83,9 +83,7 @@ with tab_profile:
                 st.session_state.confirm_delete = False
                 st.rerun()
 
-# ==========================================
 # TAB 2: DECKS
-# ==========================================
 with tab_decks:
     user_decks = get_decks(user_id) or []
     
@@ -131,9 +129,7 @@ with tab_decks:
     else:
         st.info("No decks found.")
 
-# ==========================================
 # TAB 3: CARDS
-# ==========================================
 with tab_cards:
     if user_decks:
         chosen_deck = st.selectbox("Select Deck to Manage Cards", options=user_decks, format_func=lambda d: d.name, key="card_deck_sel")
@@ -197,7 +193,7 @@ with tab_cards:
                                                         card_type="basic"
                                                     )
                                                 st.success(f"{len(cards)} card(s) created!")
-                                                time.sleep(1)
+                                                time.sleep(0.2)
                                                 st.rerun()
                                             else:
                                                 st.error("AI returned nothing.")
@@ -225,7 +221,7 @@ with tab_cards:
                                                         card_type="basic"
                                                     )
                                                 st.success(f"{len(cards)} card(s) created!")
-                                                time.sleep(1)
+                                                time.sleep(0.2)
                                                 st.rerun()
                                             else:
                                                 st.error("AI returned nothing.")
@@ -265,7 +261,7 @@ with tab_cards:
                                 for card in cards: 
                                     create_card(deck_id = chosen_deck.id, front = card["front"], back = card["back"],card_type = 'basic', audio_front = word_audio, audio_back = sentence_audio) 
                                     st.success(f"{len(cards)} Cards added!")
-                                    time.sleep(1)
+                                    time.sleep(0.2)
                                     st.rerun()
                             else:    
                                 st.error("Adding card failed, a field was empty.")
@@ -347,15 +343,17 @@ with tab_cards:
     else:
         st.info("Create a deck first.")
 
-# ==========================================
 # TAB 4: STATISTICS
-# ==========================================
 with tab_statistics:
     if user_decks:
         chosen_deck = st.selectbox("Select Deck for Statistics", options=user_decks, format_func=lambda d: d.name, key="stats_deck_sel")
         
         if chosen_deck:
             all_cards = get_cards(chosen_deck.id) or []
+            now = datetime.now(timezone.utc)
+            end_of_today = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            end_of_tomorrow = end_of_today + timedelta(days=1)
+            end_of_week = end_of_today + timedelta(days=7)
             
             if all_cards:
                 # Extract due dates from cards
@@ -369,32 +367,6 @@ with tab_statistics:
                             pass
                 
                 if due_dates:
-                    # Create bins for the next 30 days
-                    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-                    date_range = pd.date_range(start=today, periods=30, freq='D')
-                    
-                    # Count cards due on each day
-                    due_counts = []
-                    for date in date_range:
-                        count = sum(1 for d in due_dates if d.replace(hour=0, minute=0, second=0, microsecond=0) == date)
-                        due_counts.append(count)
-                    
-                    # Create the graph
-                    fig, ax = plt.subplots(figsize=(12, 5), facecolor='#0e1117')
-                    ax.set_facecolor('#1e1e2e')
-                    bars = ax.bar(date_range, due_counts, color='#6366f1', alpha=0.8, edgecolor='#4f46e5', width=0.8)
-                    
-                    ax.set_xlabel('Date', fontsize=12, color='#cbd5e1')
-                    ax.set_ylabel('Cards Due', fontsize=12, color='#cbd5e1')
-                    ax.set_title(f'Flashcard Due Dates - {chosen_deck.name}', fontsize=14, fontweight='bold', color='#cbd5e1')
-                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
-                    ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))
-                    ax.tick_params(colors='#cbd5e1')
-                    plt.xticks(rotation=45)
-                    plt.tight_layout()
-                    
-                    st.pyplot(fig)
-                    
                     # Statistics summary
                     col1, col2, col3, col4 = st.columns(4)
                     
@@ -402,16 +374,15 @@ with tab_statistics:
                         st.metric("Total Cards", len(all_cards))
                     
                     with col2:
-                        due_today = sum(1 for d in due_dates if d.replace(hour=0, minute=0, second=0, microsecond=0) == today)
+                        due_today = sum(1 for c in all_cards if c.state == "new" or (ensure_utc(c.due_date) and ensure_utc(c.due_date) <= end_of_today))
                         st.metric("Due Today", due_today)
                     
                     with col3:
-                        tomorrow = today + timedelta(days=1)
-                        due_tomorrow = sum(1 for d in due_dates if d.replace(hour=0, minute=0, second=0, microsecond=0) == tomorrow)
+                        due_tomorrow = sum(1 for c in all_cards if ensure_utc(c.due_date) and end_of_today < ensure_utc(c.due_date) <= end_of_tomorrow)
                         st.metric("Due Tomorrow", due_tomorrow)
                     
                     with col4:
-                        due_this_week = sum(1 for d in due_dates if today <= d <= today + timedelta(days=7))
+                        due_this_week = sum(1 for c in all_cards if c.state == 'new' or (ensure_utc(c.due_date) and ensure_utc(c.due_date) <= end_of_week))
                         st.metric("Due This Week", due_this_week)
                     
                     # Card state breakdown
