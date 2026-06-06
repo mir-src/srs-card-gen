@@ -66,8 +66,11 @@ def process_review(my_card: Card, rating_value: int) -> Card:
     return updated_card
 
 def convert_steps(steps: str) -> list:
+    if type(steps) != str:
+        return [10]
+
     if not steps or not steps.strip():
-        return []
+        return [10]
 
     steps_to_list = steps.replace('m', '').split()
     try:
@@ -76,10 +79,14 @@ def convert_steps(steps: str) -> list:
         return [10]
 
 def update_due_date(step_number: int) -> datetime:
-    now = datetime.now(timezone.utc)
-    converted_step_number = timedelta(minutes=step_number)
-    new_due_date = now + converted_step_number
-    return new_due_date
+    if step_number >= 0:
+        now = datetime.now(timezone.utc)
+        converted_step_number = timedelta(minutes=step_number)
+        new_due_date = now + converted_step_number
+        return new_due_date
+    else:
+        now = datetime.now(timezone.utc)
+        return now  
 
 def has_failed_learning(card_id: int) -> bool:
     with get_connection() as conn:

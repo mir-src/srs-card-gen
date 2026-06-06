@@ -7,3 +7,5 @@ dotenv
 groq
 bcrypt
 matplotlib
+pytest
+pytest-mock
