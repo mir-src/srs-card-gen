@@ -135,3 +135,15 @@ def test_get_intervals(mocker):
     intervals = get_intervals(my_card, deck)
     
     assert intervals == ['5m', '5h', '5d', '1mo']
+
+# Start of day TEST
+def test_get_start_of_day():
+    today = datetime.now(timezone.utc)
+    today_midnight = today.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+    four_time = today_midnight + timedelta(hours=4)
+    zero_time = today_midnight + timedelta(hours=0)
+    none_time = today_midnight 
+    assert get_start_of_day(4) == four_time
+    assert get_start_of_day(0) == zero_time
+    assert get_start_of_day(24) == none_time
+    assert get_start_of_day(None) == none_time

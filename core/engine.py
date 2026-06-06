@@ -238,11 +238,19 @@ def get_intervals(current_card: Card, deck: Deck) -> list:
     return intervals
 
 def get_start_of_day(day_start: int):
-    now = datetime.now(timezone.utc)
-    shifted_time = now - timedelta(hours=day_start)
-    shifted_time = shifted_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    shifted_time += timedelta(hours=day_start)
-    return shifted_time
+    if day_start != None and day_start < 24 and day_start >= 0:
+        today = datetime.now(timezone.utc)
+        today_midnight = today.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        start = timedelta(hours=day_start)
+        shifted_time = today_midnight + start
+
+        return shifted_time
+    else:
+        today = datetime.now(timezone.utc)
+        today_midnight = today.replace(hour=0, minute=0, second=0, microsecond=0)
+        return today_midnight
+    
 
 
 
