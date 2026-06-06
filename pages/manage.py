@@ -232,11 +232,11 @@ with tab_cards:
                 c_type = st.selectbox("Card Type", ["basic", "type", "cloze", "language"])
                 with st.form("create_card_form", clear_on_submit=True):
                     if c_type == 'language':
-                        language = st.text_input("Enter language of target word") 
-                        word = st.text_input("Enter target word") 
-                        sentence = st.text_area("Enter example sentence") 
-                        word_meaning = st.text_input("Enter word meaning")
-                        sentence_meaning = st.text_area("Enter example sentence meaning") or ""
+                        language = st.text_input("Language of Target Word (Required)") 
+                        word = st.text_input("Foreign Target Word (Required)") 
+                        sentence = st.text_area("Example Sentence with Target Word (Required)") 
+                        word_meaning = st.text_input("Target Word Meaning (Recommended)") or ""
+                        sentence_meaning = st.text_area("Example Sentence Meaning (Optional)") or ""
                         word_hiragana = st.text_input("Hiragana of Japanese word (Optional)") or ""
                         sentence_hiragana = st.text_area("Sentence hiragana (Optional)") or ""
 
@@ -250,23 +250,23 @@ with tab_cards:
                             "sentence_hiragana": sentence_hiragana
                             }
 
-                            if card_dict:
-                                cards = process_ai_response(card_dict) 
-
                             if word and sentence and language:
                                 word_audio = generate_audio(text = word, language = language)
                                 sentence_audio = generate_audio(text = sentence, language = language)
 
-                            if cards and word_audio and sentence_audio:
-                                for card in cards: 
-                                    create_card(deck_id = chosen_deck.id, front = card["front"], back = card["back"],card_type = 'basic', audio_front = word_audio, audio_back = sentence_audio) 
-                                    st.success(f"{len(cards)} Cards added!")
-                                    time.sleep(0.2)
-                                    st.rerun()
+                                if card_dict:
+                                    cards = process_ai_response(card_dict) 
+
+                                if cards:
+                                    for card in cards: 
+                                        create_card(deck_id = chosen_deck.id, front = card["front"], back = card["back"],card_type = 'basic', audio_front = word_audio, audio_back = sentence_audio) 
+                                        st.success(f"{len(cards)} Cards added!")
+                                        time.sleep(0.2)
+                                        st.rerun()
                             else:    
                                 st.error("Adding card failed, a field was empty.")
                     else:
-                        front = st.text_area("Front / Cloze Text")
+                        front = st.text_area("Front / For Cloze card use \{\{c1::hidden}} to hide text")
                         back = st.text_area("Back / Extra Notes")
                         if st.form_submit_button("Add Normal Card"):
                             if front:

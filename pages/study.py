@@ -167,3 +167,7 @@ if chosen_deck:
                 st.session_state.show_answer = False
                 if "saved_guess" in st.session_state: del st.session_state["saved_guess"]
                 st.rerun()
+else:
+    st.success("You finished your reviews for the day!")
+    if st.button("Back to Dashboard"):
+        st.switch_page("app.py")
