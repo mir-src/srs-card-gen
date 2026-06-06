@@ -140,10 +140,15 @@ def test_get_intervals(mocker):
 def test_get_start_of_day():
     today = datetime.now(timezone.utc)
     today_midnight = today.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-    four_time = today_midnight + timedelta(hours=4)
-    zero_time = today_midnight + timedelta(hours=0)
-    none_time = today_midnight 
-    assert get_start_of_day(4) == four_time
-    assert get_start_of_day(0) == zero_time
-    assert get_start_of_day(24) == none_time
-    assert get_start_of_day(None) == none_time
+
+    wrong_input = today_midnight + timedelta(hours=4) 
+    correct_input_four = today_midnight + timedelta(hours=4)
+    correct_input_zero = today_midnight  
+
+    assert get_start_of_day(4) == correct_input_four
+    assert get_start_of_day(0) == correct_input_zero
+    assert get_start_of_day(24) == wrong_input
+    assert get_start_of_day(None) == wrong_input
+    assert get_start_of_day(True) == wrong_input
+    assert get_start_of_day([2, 1]) == wrong_input
+    assert get_start_of_day("int") == wrong_input
