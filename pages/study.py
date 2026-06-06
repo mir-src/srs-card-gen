@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import re
 from db.decks import get_deck
 from db.cards import get_due_cards, update_card, log_review
@@ -96,10 +97,16 @@ if chosen_deck:
             render_language_front(current_card.front)   
             
             if current_card.audio_front and current_card.audio_front.strip():
-                st.audio(current_card.audio_front, autoplay=True)
+                if os.path.exists(current_card.audio_front):
+                    st.audio(current_card.audio_front, autoplay=True)
+                else:
+                    st.warning("⚠️ Audio front file missing from disk.")
     
             if current_card.audio_back and current_card.audio_back.strip():
-                st.audio(current_card.audio_back, autoplay=False)
+                if os.path.exists(current_card.audio_back):
+                    st.audio(current_card.audio_back, autoplay=False)
+                else:
+                    st.warning("⚠️ Audio back file missing from disk.")
 
         st.markdown("---")
         start_time = time.perf_counter()

@@ -2,17 +2,8 @@ import os
 from db.cards import delete_card, get_card, update_card
 from db.decks import delete_deck
 from db.users import delete_user
-from db.core import fetch_all
-from db.models import Media, User, Deck, Card
-
-def safe_delete_card(card_id: int) -> bool:
-    media_files = fetch_all("SELECT * FROM media WHERE card_id = ?", (card_id,), Media)
-    
-    for media in media_files:
-        if os.path.exists(media.path):
-            os.remove(media.path)
-
-    return delete_card(card_id)
+from db.core import fetch_all 
+from db.models import Media
 
 def safe_delete_user(user_id: int) -> bool:
     sql = """

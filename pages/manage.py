@@ -312,28 +312,21 @@ with tab_cards:
                     key=f"editor_{chosen_deck.id}"
                 )
                 
-                # 3. The Sync Button
                 if st.button("💾 Save Database Changes", type="primary"):
-                    # Extract the IDs that survived the editor (weren't deleted)
                     remaining_ids = [row["id"] for row in edited_cards if row.get("id") is not None]
                     
-                    # Handle Deletions: If an original ID is missing from the editor, delete it
                     for orig_c in all_cards:
                         if orig_c.id not in remaining_ids:
                             delete_card(orig_c.id)
                     
-                    # Handle Edits: Update the remaining cards
                     for row in edited_cards:
                         if row.get("id") is not None:
-                            # Find the original card object
                             orig_c = next((c for c in all_cards if c.id == row["id"]), None)
                             if orig_c:
-                                # Update attributes
                                 orig_c.front = row["front"]
                                 orig_c.back = row["back"]
-                                orig_c.is_suspended = row["suspended"] # Safe because python bool translates to SQL
+                                orig_c.is_suspended = row["suspended"] 
                                 
-                                # Send to backend
                                 update_card(orig_c)
                                 
                     st.success("Database fully synced with editor!")
