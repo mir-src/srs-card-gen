@@ -10,6 +10,15 @@
 
 ---
 
+## Demo
+#### Studying a flashcard (Type in the answer)
+![memora_study](assets/memora_study.gif)
+
+#### Creating a flashcard to learn Japanese
+![memora_create](assets/memora_create.gif)
+
+---
+
 ## Installation
 
 Follow these steps to get the environment running on your local machine:
